@@ -1,21 +1,22 @@
 {
     "name": "resonate",
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
     "module": "index.ts",
-    "type": "module",
-    "private": true,
     "devDependencies": {
         "@types/bun": "latest"
     },
     "peerDependencies": {
         "typescript": "^5"
     },
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
     "dependencies": {
         "@tabler/icons-react": "^3.36.1",
         "@tailwindcss/vite": "^4.1.18",
+        "motion": "^12.27.0",
         "tailwindcss": "^4.1.18"
     }
 }
