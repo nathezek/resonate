@@ -12,5 +12,10 @@
     },
     "peerDependencies": {
         "typescript": "^5"
+    },
+    "dependencies": {
+        "@tabler/icons-react": "^3.36.1",
+        "@tailwindcss/vite": "^4.1.18",
+        "tailwindcss": "^4.1.18"
     }
 }
