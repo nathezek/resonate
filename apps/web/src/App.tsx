@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./modules/navbar/navbar";
+import Canvas from "./modules/canvas/canvas";
 
 // state imports
 import { useState } from "react";
@@ -34,7 +35,7 @@ function App() {
         <main className="flex flex-col items-center justify-center">
             <AnimatePresence mode="wait">
                 {session ? (
-                    <div className="w-full h-screen overflow-auto flex items-center justify-center">
+                    <Canvas>
                         <Navbar
                             key="navbar-unique"
                             toggleSession={handleToggle}
@@ -67,7 +68,7 @@ function App() {
                                 <p>{output}</p>
                             </div>
                         </div>
-                    </div>
+                    </Canvas>
                 ) : (
                     <motion.div
                         key="start-button"
