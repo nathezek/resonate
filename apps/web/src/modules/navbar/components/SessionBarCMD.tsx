@@ -25,7 +25,7 @@ const SessionControls = ({ onEndSession }: { onEndSession: () => void }) => {
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -40 }}
+            exit={{ opacity: 0, y: -30 }}
             className="w-64 h-12 bg-neutral-800 text-neutral-100 rounded-2xl px-1.5 flex items-center justify-between py-1.5"
         >
             <div className="h-full select-none w-fit gap-x-2.5 pl-2.5 flex items-center justify-center">
