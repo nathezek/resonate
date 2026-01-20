@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import Navbar from "./components/main/navbar";
+import Navbar from "./modules/navbar/navbar";
 
 // state imports
 import { useState } from "react";
@@ -15,9 +15,9 @@ function App() {
                 ) : (
                     <motion.div
                         key="start-button"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
                         className="cursor-pointer"
                         onClick={() => setSession(true)}
                     >
