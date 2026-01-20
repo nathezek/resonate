@@ -14,6 +14,7 @@
         "packages/*"
     ],
     "dependencies": {
+        "@google/genai": "^1.37.0",
         "@tabler/icons-react": "^3.36.1",
         "@tailwindcss/vite": "^4.1.18",
         "motion": "^12.27.0",
