@@ -1,12 +1,17 @@
-export async function askGemini(prompt: string) {
+export interface ChatMessage {
+    role: "user" | "model";
+    parts: { text: string }[];
+}
+
+export async function askGemini(history: ChatMessage[]) {
     try {
-        // We now request our OWN server
         const response = await fetch("http://localhost:8080/ask", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ prompt }),
+            // We send the entire conversation history array
+            body: JSON.stringify({ contents: history }),
         });
 
         if (!response.ok) {
@@ -14,7 +19,7 @@ export async function askGemini(prompt: string) {
         }
 
         const data = await response.json();
-        return data.text; // The 'text' field we defined in Rust
+        return data.text;
     } catch (error) {
         console.error("Backend Error:", error);
         throw error;

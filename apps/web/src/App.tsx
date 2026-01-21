@@ -4,7 +4,7 @@ import Canvas from "./modules/canvas/canvas";
 
 // state imports
 import { useState } from "react";
-import { askGemini } from "./api/gemini";
+import { askGemini, type ChatMessage } from "./api/gemini";
 
 function App() {
     const [session, setSession] = useState<boolean>(false);
@@ -14,23 +14,39 @@ function App() {
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const [history, setHistory] = useState<ChatMessage[]>([]);
+
     const handleSend = async () => {
         if (!input) return;
 
+        // 1. Create the new user message
+        const newUserMsg: ChatMessage = {
+            role: "user",
+            parts: [{ text: input }],
+        };
+
+        // 2. Add it to a temporary array (so we can send it immediately)
+        const updatedHistory = [...history, newUserMsg];
+
         setLoading(true);
-        setOutput("Thinking...");
+        setInput("");
 
         try {
-            // Executing the Request-Response cycle
-            const responseText = await askGemini(input);
+            // 3. Send the WHOLE history to Rust
+            const responseText = await askGemini(updatedHistory);
+
+            // 4. Update state with BOTH the user message and the AI's reply
+            setHistory([
+                ...updatedHistory,
+                { role: "model", parts: [{ text: responseText }] },
+            ]);
             setOutput(responseText);
         } catch (err) {
-            setOutput("Error: Could not reach the AI.");
+            setOutput("Error: Brain disconnected.");
         } finally {
             setLoading(false);
         }
     };
-
     return (
         <main className="flex flex-col items-center justify-center">
             <AnimatePresence mode="wait">
@@ -40,33 +56,130 @@ function App() {
                             key="navbar-unique"
                             toggleSession={handleToggle}
                         />
-
-                        <div style={{ padding: "20px", maxWidth: "600px" }}>
+                        <div
+                            style={{
+                                padding: "20px",
+                                maxWidth: "800px",
+                                margin: "0 auto",
+                            }}
+                        >
                             <h1>Gemini AI Explorer</h1>
 
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Ask me something..."
-                                rows={4}
-                                style={{ width: "100%" }}
-                            />
-
-                            <button onClick={handleSend} disabled={loading}>
-                                {loading ? "Sending..." : "Send Request"}
-                            </button>
-
+                            {/* 1. THE CHAT HISTORY AREA */}
                             <div
                                 style={{
-                                    marginTop: "20px",
-                                    whiteSpace: "pre-wrap",
-                                    border: "1px solid #ccc",
-                                    padding: "10px",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    height: "300px",
+                                    overflowY: "scroll",
+                                    padding: "15px",
+                                    marginBottom: "20px",
+                                    backgroundColor: "#f9f9f9",
                                 }}
                             >
-                                <strong>Response:</strong>
-                                <p>{output}</p>
+                                {history.map((msg, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            marginBottom: "15px",
+                                            textAlign:
+                                                msg.role === "user"
+                                                    ? "right"
+                                                    : "left",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "10px",
+                                                borderRadius: "12px",
+                                                maxWidth: "80%",
+                                                backgroundColor:
+                                                    msg.role === "user"
+                                                        ? "#007bff"
+                                                        : "#e9ecef",
+                                                color:
+                                                    msg.role === "user"
+                                                        ? "white"
+                                                        : "black",
+                                                whiteSpace: "pre-wrap",
+                                            }}
+                                        >
+                                            <strong>
+                                                {msg.role === "user"
+                                                    ? "You"
+                                                    : "Gemini"}
+                                                :
+                                            </strong>
+                                            <p style={{ margin: "5px 0 0" }}>
+                                                {msg.parts[0].text}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Loading indicator inside the chat flow */}
+                                {loading && (
+                                    <div
+                                        style={{
+                                            textAlign: "left",
+                                            color: "#888",
+                                            fontStyle: "italic",
+                                        }}
+                                    >
+                                        Gemini is thinking...
+                                    </div>
+                                )}
                             </div>
+
+                            {/* 2. THE INPUT AREA */}
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <textarea
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="Follow up or ask something new..."
+                                    rows={2}
+                                    style={{
+                                        flexGrow: 1,
+                                        padding: "10px",
+                                        borderRadius: "5px",
+                                        border: "1px solid #ccc",
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={handleSend}
+                                    disabled={loading}
+                                    style={{
+                                        padding: "0 20px",
+                                        cursor: loading
+                                            ? "not-allowed"
+                                            : "pointer",
+                                    }}
+                                >
+                                    Send
+                                </button>
+                            </div>
+
+                            {/* 3. UTILITY BUTTONS */}
+                            <button
+                                onClick={() => setHistory([])}
+                                style={{
+                                    marginTop: "10px",
+                                    background: "none",
+                                    border: "none",
+                                    color: "red",
+                                    cursor: "pointer",
+                                    fontSize: "12px",
+                                }}
+                            >
+                                Clear Conversation History
+                            </button>
                         </div>
                     </Canvas>
                 ) : (

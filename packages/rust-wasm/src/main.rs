@@ -6,7 +6,8 @@ use serde_json::json;
 
 #[derive(Deserialize)]
 struct UserRequest {
-    prompt: String,
+    // We now accept the full conversation history from the frontend
+    contents: Vec<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -18,7 +19,6 @@ struct GeminiResponse {
 async fn ask_ai(req: web::Json<UserRequest>) -> impl Responder {
     let api_key = std::env::var("GEMINI_API_KEY").expect("API Key not set");
 
-    // Using the 2026 stable-track endpoint for Gemini 3 Flash
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={}",
         api_key
@@ -26,9 +26,13 @@ async fn ask_ai(req: web::Json<UserRequest>) -> impl Responder {
 
     let client = Client::new();
 
-    // FIXED: Correct nesting for Gemini 3 Thinking Config
     let body = json!({
-        "contents": [{ "parts": [{ "text": &req.prompt }] }],
+        "contents": req.contents,
+        "system_instruction": {
+            "parts": [{
+                "text": "You are a senior Rust and React developer. Give concise, technical answers. Use a slightly sarcastic, witty tone."
+            }]
+        },
         "generationConfig": {
             "thinking_config": {
                 "thinking_level": "minimal"
@@ -36,40 +40,33 @@ async fn ask_ai(req: web::Json<UserRequest>) -> impl Responder {
         }
     });
 
-    // 1. Sending the Request to Google
     let res = client.post(url).json(&body).send().await;
 
     match res {
         Ok(response) => {
             let json: serde_json::Value = response.json().await.unwrap();
 
-            // DEBUG: Keep this to see what Google is sending during development
+            // Debug print to see the conversation history growing in your terminal
             println!("Full Google Response: {:#?}", json);
 
-            // 2. ROBUST PARSING:
-            // Gemini 3 can return multiple parts (one for thoughts, one for text).
-            // This logic finds the specific part that contains the "text" key.
+            // Robust parsing to find the "text" part among possible "thought" parts
             let ai_text = json["candidates"][0]["content"]["parts"]
                 .as_array()
                 .and_then(|parts| {
                     parts
                         .iter()
-                        .find(|p| p.get("text").is_some()) // Find the part with text
-                        .and_then(|p| p["text"].as_str()) // Get the string value
+                        .find(|p| p.get("text").is_some())
+                        .and_then(|p| p["text"].as_str())
                 })
-                .or_else(|| {
-                    // Fallback: If no text is found, check if there's a "thought" part
-                    json["candidates"][0]["content"]["parts"][0]["thought"].as_str()
-                })
-                .unwrap_or("The AI returned an empty response. Try a different prompt.");
+                .or_else(|| json["candidates"][0]["content"]["parts"][0]["thought"].as_str())
+                .unwrap_or("The AI returned an empty response.");
 
-            // 3. Sending the final Response back to the React app
             HttpResponse::Ok().json(GeminiResponse {
                 text: ai_text.to_string(),
             })
         }
         Err(e) => {
-            println!("Request Error: {:?}", e);
+            eprintln!("Request Error: {:?}", e);
             HttpResponse::InternalServerError().body("Error reaching Gemini API")
         }
     }
@@ -82,7 +79,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         let cors = Cors::default()
-            .allowed_origin("http://localhost:5173") // Your React Dev Server
+            .allowed_origin("http://localhost:5173")
             .allowed_methods(vec!["POST"])
             .allow_any_header()
             .max_age(3600);
