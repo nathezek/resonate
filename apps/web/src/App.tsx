@@ -6,146 +6,128 @@ import Canvas from "./modules/canvas/canvas";
 import { askGemini, type ChatMessage } from "./api/gemini";
 
 // state imports
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSessionStore } from "./stores/session_store";
 
 function App() {
-    // const [session, setSession] = useState<boolean>(false);
-    // const handleToggle = () => setSession((prev) => !prev);
-
     const { isActive, startSession } = useSessionStore();
-    const [input, setInput] = useState("");
-    const [output, setOutput] = useState("");
-    const [loading, setLoading] = useState(false);
 
+    const [input, setInput] = useState("");
+    const [loading, setLoading] = useState(false);
     const [history, setHistory] = useState<ChatMessage[]>([]);
 
-    const handleSend = async () => {
-        if (!input) return;
+    // Ref to automatically scroll to the latest message
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-        // 1. Create the new user message
+    // Effect to scroll to bottom whenever history changes
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [history, loading]);
+
+    const handleSend = async () => {
+        if (!input.trim() || loading) return;
+
         const newUserMsg: ChatMessage = {
             role: "user",
             parts: [{ text: input }],
         };
 
-        // 2. Add it to a temporary array (so we can send it immediately)
         const updatedHistory = [...history, newUserMsg];
-
+        setHistory(updatedHistory); // Update UI immediately with user message
         setLoading(true);
         setInput("");
 
         try {
-            // 3. Send the WHOLE history to Rust
             const responseText = await askGemini(updatedHistory);
 
-            // 4. Update state with BOTH the user message and the AI's reply
             setHistory([
                 ...updatedHistory,
                 { role: "model", parts: [{ text: responseText }] },
             ]);
-            setOutput(responseText);
         } catch (err) {
-            setOutput("Error: Brain disconnected.");
+            setHistory([
+                ...updatedHistory,
+                {
+                    role: "model",
+                    parts: [
+                        {
+                            text: "Error: Brain disconnected. Check your connection.",
+                        },
+                    ],
+                },
+            ]);
         } finally {
             setLoading(false);
         }
     };
+
     return (
-        <main className="flex flex-col items-center justify-center">
+        <main className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
             <AnimatePresence mode="wait">
                 {isActive ? (
                     <Canvas>
                         <Navbar key="navbar-unique" />
-                        <div
-                            style={{
-                                padding: "20px",
-                                maxWidth: "800px",
-                                margin: "0 auto",
-                            }}
-                        >
-                            <h1>Gemini AI Explorer</h1>
+                        <div className="p-5 max-w-3xl mx-auto w-full flex flex-col h-[80vh]">
+                            <h1 className="text-2xl font-bold mb-4 text-center">
+                                Gemini AI Explorer
+                            </h1>
 
                             {/* 1. THE CHAT HISTORY AREA */}
                             <div
-                                style={{
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    height: "300px",
-                                    overflowY: "scroll",
-                                    padding: "15px",
-                                    marginBottom: "20px",
-                                    backgroundColor: "#f9f9f9",
-                                }}
+                                ref={scrollRef}
+                                className="border border-gray-200 rounded-xl overflow-y-auto p-4 mb-4 bg-white shadow-inner flex flex-col gap-4"
                             >
+                                {history.length === 0 && (
+                                    <p className="text-gray-400 text-center mt-10">
+                                        Start a conversation...
+                                    </p>
+                                )}
+
                                 {history.map((msg, index) => (
                                     <div
                                         key={index}
-                                        style={{
-                                            marginBottom: "15px",
-                                            textAlign:
-                                                msg.role === "user"
-                                                    ? "right"
-                                                    : "left",
-                                        }}
+                                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                     >
                                         <div
-                                            style={{
-                                                display: "inline-block",
-                                                padding: "10px",
-                                                borderRadius: "12px",
-                                                maxWidth: "80%",
-                                                backgroundColor:
-                                                    msg.role === "user"
-                                                        ? "#007bff"
-                                                        : "#e9ecef",
-                                                color:
-                                                    msg.role === "user"
-                                                        ? "white"
-                                                        : "black",
-                                                whiteSpace: "pre-wrap",
-                                            }}
+                                            className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                                                msg.role === "user"
+                                                    ? "bg-blue-600 text-white rounded-tr-none"
+                                                    : "bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200"
+                                            }`}
                                         >
-                                            <strong>
+                                            <span className="block font-bold mb-1 text-[10px] uppercase tracking-wider opacity-70">
                                                 {msg.role === "user"
                                                     ? "You"
                                                     : "Gemini"}
-                                                :
-                                            </strong>
-                                            <p style={{ margin: "5px 0 0" }}>
+                                            </span>
+                                            <p className="whitespace-pre-wrap leading-relaxed">
                                                 {msg.parts[0].text}
                                             </p>
                                         </div>
                                     </div>
                                 ))}
 
-                                {/* Loading indicator inside the chat flow */}
                                 {loading && (
-                                    <div
-                                        style={{
-                                            textAlign: "left",
-                                            color: "#888",
-                                            fontStyle: "italic",
-                                        }}
-                                    >
-                                        Gemini is thinking...
+                                    <div className="flex justify-start">
+                                        <div className="bg-gray-50 border border-gray-100 p-3 rounded-2xl rounded-tl-none animate-pulse">
+                                            <span className="text-xs text-gray-400 italic">
+                                                Gemini is thinking...
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
                             {/* 2. THE INPUT AREA */}
-                            <div style={{ display: "flex", gap: "10px" }}>
+                            <div className="flex gap-2">
                                 <textarea
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Follow up or ask something new..."
-                                    rows={2}
-                                    style={{
-                                        flexGrow: 1,
-                                        padding: "10px",
-                                        borderRadius: "5px",
-                                        border: "1px solid #ccc",
-                                    }}
+                                    placeholder="Type your message..."
+                                    rows={1}
+                                    className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault();
@@ -155,13 +137,12 @@ function App() {
                                 />
                                 <button
                                     onClick={handleSend}
-                                    disabled={loading}
-                                    style={{
-                                        padding: "0 20px",
-                                        cursor: loading
-                                            ? "not-allowed"
-                                            : "pointer",
-                                    }}
+                                    disabled={loading || !input.trim()}
+                                    className={`px-6 rounded-lg font-medium transition-colors ${
+                                        loading
+                                            ? "bg-gray-300 cursor-not-allowed"
+                                            : "bg-blue-600 text-white hover:bg-blue-700"
+                                    }`}
                                 >
                                     Send
                                 </button>
@@ -170,14 +151,7 @@ function App() {
                             {/* 3. UTILITY BUTTONS */}
                             <button
                                 onClick={() => setHistory([])}
-                                style={{
-                                    marginTop: "10px",
-                                    background: "none",
-                                    border: "none",
-                                    color: "red",
-                                    cursor: "pointer",
-                                    fontSize: "12px",
-                                }}
+                                className="mt-2 text-red-500 text-xs self-start hover:underline"
                             >
                                 Clear Conversation History
                             </button>
@@ -189,7 +163,7 @@ function App() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="cursor-pointer"
+                        className="cursor-pointer bg-blue-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:bg-blue-700 transition-all"
                         onClick={startSession}
                     >
                         Start Session
