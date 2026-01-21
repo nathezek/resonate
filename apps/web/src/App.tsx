@@ -2,14 +2,18 @@ import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./modules/navbar/navbar";
 import Canvas from "./modules/canvas/canvas";
 
-// state imports
-import { useState } from "react";
+// AI logic imports
 import { askGemini, type ChatMessage } from "./api/gemini";
 
-function App() {
-    const [session, setSession] = useState<boolean>(false);
-    const handleToggle = () => setSession((prev) => !prev);
+// state imports
+import { useState } from "react";
+import { useSessionStore } from "./stores/session_store";
 
+function App() {
+    // const [session, setSession] = useState<boolean>(false);
+    // const handleToggle = () => setSession((prev) => !prev);
+
+    const { isActive, startSession } = useSessionStore();
     const [input, setInput] = useState("");
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -50,12 +54,9 @@ function App() {
     return (
         <main className="flex flex-col items-center justify-center">
             <AnimatePresence mode="wait">
-                {session ? (
+                {isActive ? (
                     <Canvas>
-                        <Navbar
-                            key="navbar-unique"
-                            toggleSession={handleToggle}
-                        />
+                        <Navbar key="navbar-unique" />
                         <div
                             style={{
                                 padding: "20px",
@@ -189,7 +190,7 @@ function App() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
                         className="cursor-pointer"
-                        onClick={() => setSession(true)}
+                        onClick={startSession}
                     >
                         Start Session
                     </motion.div>
