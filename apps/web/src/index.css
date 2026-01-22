@@ -10,6 +10,11 @@
     src: url("./assets/font/InterTight.ttf");
 }
 
+@font-face {
+    font-family: "Serif";
+    src: url("./assets/font/SourceSerif.ttf");
+}
+
 :root {
     font-family: "Inter-Tight", monospace;
     line-height: 1.5;
@@ -18,6 +23,10 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+    width: 0;
 }
 
 body {
@@ -33,4 +42,8 @@ main {
 
 .mono {
     font-family: "JetBrains-Mono", monospace;
+}
+
+.classic-serif {
+    font-family: "Serif", monospace;
 }
