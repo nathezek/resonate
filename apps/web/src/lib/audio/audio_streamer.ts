@@ -15,24 +15,22 @@ export class AudioStreamer {
     // Queue for incoming audio chunks to play
     private nextStartTime: number = 0;
 
+    private onData: (data: ArrayBuffer) => void;
+    private onError: (err: Error) => void;
+
     constructor(
-        private onData: (data: ArrayBuffer) => void,
-        private onError: (err: Error) => void
-    ) { }
+        onData: (data: ArrayBuffer) => void,
+        onError: (err: Error) => void
+    ) {
+        this.onData = onData;
+        this.onError = onError;
+    }
 
     public async initialize() {
         if (this.context) return;
 
-        this.context = new window.AudioContext({ sampleRate: 24000 }); // Gemini likes 16k or 24k. 24k is standard "high quality" voice.
-        // Actually Gemini Live API often defaults to 16kHz or 24kHz. Let's stick to 16kHz for robustness if needed, but 24kHz is safe.
-        // Let's explicitly set 16000 to match the "PCM 16kHz" expectation commonly used.
-        if (this.context.sampleRate !== 16000) {
-            // We can't force browser context rate easily, but we can resample.
-            // For simplicity, we'll try to let the context be native and resample in worklet if needed.
-            // Or just request 16000.
-            this.context.close();
-            this.context = new window.AudioContext({ sampleRate: 16000 });
-        }
+        // Gemini outputs 24kHz audio, so we need to match that sample rate
+        this.context = new window.AudioContext({ sampleRate: 24000 });
 
         await this.context.resume();
         await this.loadWorklet();
@@ -128,8 +126,8 @@ export class AudioStreamer {
             float32Data[i] = int < 0 ? int / 0x8000 : int / 0x7FFF;
         }
 
-        // Schedule play
-        const buffer = this.context.createBuffer(1, float32Data.length, 16000); // Expecting 16kHz
+        // Schedule play - Gemini outputs 24kHz audio
+        const buffer = this.context.createBuffer(1, float32Data.length, 24000);
         buffer.getChannelData(0).set(float32Data);
 
         const source = this.context.createBufferSource();
