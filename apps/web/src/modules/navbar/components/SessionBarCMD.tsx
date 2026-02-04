@@ -1,7 +1,6 @@
 import {
     IconKeyboard,
     IconKeyboardOff,
-    IconLineDotted,
     IconMicrophone,
     IconMicrophoneOff,
     IconPlayerPause,
@@ -14,6 +13,7 @@ import { useSessionStore } from "../../../stores/session_store.ts";
 import { useSessionUIState } from "../../../utils/sesssion_selector.ts";
 import { useKeyboardStore } from "../../../stores/keyboard_store.ts";
 import TimerDisplay from "../../ui-components/TimeDisplay.tsx";
+import { MicVisualizer } from "./MicVisualizer.tsx";
 
 // --- Main Component ---
 
@@ -87,19 +87,8 @@ const SessionControls = () => {
                     <span className="text-neutral-700">|</span>
 
                     {/* Visualizer - Reactive via selector */}
-                    <IconLineDotted
-                        size={32}
-                        className={`transition-colors duration-500 ${
-                            isVisualizerActive
-                                ? "text-neutral-400"
-                                : "text-neutral-600"
-                        }`}
-                    />
+                    <MicVisualizer isActive={isVisualizerActive} />
                 </div>
-                {/**/}
-                {/* <div className="tracking-tight text-neutral-400 font-mono text-[0.895rem] h-9 flex items-center"> */}
-                {/*     08:04 */}
-                {/* </div> */}
                 <TimerDisplay />
 
                 <motion.button
@@ -172,9 +161,8 @@ const ControlButton = ({
             whileTap={!disabled ? "tapped" : undefined}
             animate={{ opacity: !isActive ? 0.4 : 1 }}
             onClick={() => !disabled && onClick()}
-            className={`flex items-center justify-center w-6 h-8 ${
-                disabled ? "cursor-not-allowed" : "cursor-pointer"
-            }`}
+            className={`flex items-center justify-center w-6 h-8 ${disabled ? "cursor-not-allowed" : "cursor-pointer"
+                }`}
         >
             <AnimatePresence mode="wait" initial={false}>
                 <motion.div

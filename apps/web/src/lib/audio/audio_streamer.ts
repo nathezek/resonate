@@ -8,6 +8,7 @@ export class AudioStreamer {
     private worklet: AudioWorkletNode | null = null;
     private inputSource: MediaStreamAudioSourceNode | null = null;
     private gainNode: GainNode | null = null;
+    private analyser: AnalyserNode | null = null;
 
     private isRecording: boolean = false;
     private isPlaying: boolean = false;
@@ -79,11 +80,18 @@ export class AudioStreamer {
             this.inputSource = this.context.createMediaStreamSource(stream);
             this.worklet = new AudioWorkletNode(this.context, "pcm-processor");
 
+            // Create analyser for visualizer
+            this.analyser = this.context.createAnalyser();
+            this.analyser.fftSize = 64; // Small FFT for 6 frequency bands
+            this.analyser.smoothingTimeConstant = 0.7;
+
             this.worklet.port.onmessage = (event) => {
                 this.onData(event.data);
             };
 
-            this.inputSource.connect(this.worklet);
+            // Connect: inputSource -> analyser -> worklet
+            this.inputSource.connect(this.analyser);
+            this.analyser.connect(this.worklet);
             this.worklet.connect(this.context.destination); // Connect to mute? No, don't connect to destination if we don't want self-monitoring.
             // Actually we usually DON'T want to hear ourselves.
             // So disconnect logic:
@@ -98,8 +106,30 @@ export class AudioStreamer {
     public stopRecording() {
         if (!this.isRecording) return;
         this.inputSource?.disconnect();
+        this.analyser?.disconnect();
         this.worklet?.disconnect();
         this.isRecording = false;
+    }
+
+    public getFrequencyData(): number[] | null {
+        if (!this.analyser || !this.isRecording) return null;
+
+        const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(dataArray);
+
+        // Map to 6 bars: center (high freq) to outer (low freq)
+        // Bins: [low ... high], we want [mid-high, high, highest, highest, high, mid-high]
+        const binCount = dataArray.length;
+        const bars = [
+            dataArray[Math.floor(binCount * 0.4)] / 255,  // Bar 0 (outer left - mid freq)
+            dataArray[Math.floor(binCount * 0.6)] / 255,  // Bar 1 (mid-high)
+            dataArray[Math.floor(binCount * 0.8)] / 255,  // Bar 2 (high - center)
+            dataArray[Math.floor(binCount * 0.8)] / 255,  // Bar 3 (high - center)
+            dataArray[Math.floor(binCount * 0.6)] / 255,  // Bar 4 (mid-high)
+            dataArray[Math.floor(binCount * 0.4)] / 255,  // Bar 5 (outer right - mid freq)
+        ];
+
+        return bars;
     }
 
     public playAudioChunk(base64Audio: string) {
