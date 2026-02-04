@@ -8,7 +8,7 @@ export interface SessionState {
     isActive: boolean;
     isPaused: boolean;
     wasMutedBeforePause: boolean;
-    startSession: () => void;
+    startSession: () => Promise<void>;
     togglePause: () => void;
     endSession: () => void;
 }
@@ -18,10 +18,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     isPaused: false,
     wasMutedBeforePause: false,
 
-    startSession: () => {
+    startSession: async () => {
         const audio = useAudioStore.getState();
         const keyboard = useKeyboardStore.getState();
         const timer = useSessionTimeStore.getState();
+
+        // Request microphone permission first to ensure prompt appears
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+            console.error("Microphone permission denied:", err);
+            return;
+        }
 
         audio.connect(); // Connect logic
         audio.turnMicOn();

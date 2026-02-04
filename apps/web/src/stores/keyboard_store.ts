@@ -3,6 +3,7 @@ import { useAudioStore } from "./audio_store";
 
 export interface KeyboardState {
     keyboardEnabled: boolean;
+    wasMicEnabledBeforeKeyboard: boolean;
     toggleKeyboard: () => void;
     disableKeyboard: () => void;
     enableKeyboard: () => void; // Added for explicit control
@@ -10,17 +11,25 @@ export interface KeyboardState {
 
 export const useKeyboardStore = create<KeyboardState>((set) => ({
     keyboardEnabled: false,
+    wasMicEnabledBeforeKeyboard: false,
 
     toggleKeyboard: () =>
         set((state) => {
             const nextState = !state.keyboardEnabled;
+            const audioStore = useAudioStore.getState();
 
-            // If keyboard ON, turn the mic OFF
             if (nextState) {
-                useAudioStore.getState().turnMicOff();
+                // Keyboard turning ON - save mic state and turn mic off
+                const micWasEnabled = audioStore.micEnabled;
+                audioStore.turnMicOff();
+                return { keyboardEnabled: true, wasMicEnabledBeforeKeyboard: micWasEnabled };
+            } else {
+                // Keyboard turning OFF - restore mic if it was on before
+                if (state.wasMicEnabledBeforeKeyboard) {
+                    audioStore.turnMicOn();
+                }
+                return { keyboardEnabled: false };
             }
-
-            return { keyboardEnabled: nextState };
         }),
 
     disableKeyboard: () => set({ keyboardEnabled: false }),
