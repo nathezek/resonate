@@ -13,6 +13,7 @@ export interface AudioState {
     turnMicOn: () => void;
     connect: () => void;
     disconnect: () => void;
+    sendTextMessage: (text: string) => void;
 }
 
 export const useAudioStore = create<AudioState>((set, get) => ({
@@ -125,5 +126,18 @@ export const useAudioStore = create<AudioState>((set, get) => ({
         state.streamer?.resumeContext();
         state.streamer?.startRecording();
         set({ micEnabled: true });
+    },
+
+    sendTextMessage: (text: string) => {
+        const socket = get().socket;
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                realtimeInput: {
+                    text: text
+                }
+            }));
+        } else {
+            console.error("WebSocket not connected");
+        }
     },
 }));

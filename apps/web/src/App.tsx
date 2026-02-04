@@ -9,6 +9,7 @@ import { useSessionStore } from "./stores/session_store";
 import { useKeyboardStore } from "./stores/keyboard_store";
 import { useSessionUIState } from "./utils/sesssion_selector";
 import { useChatHistoryStore } from "./stores/chat_history_store";
+import { useAudioStore } from "./stores/audio_store";
 //icons
 import { IconDots } from "@tabler/icons-react";
 //components
@@ -17,7 +18,8 @@ import { InputArea } from "./modules/ui-components/TextArea.tsx";
 // --------------------------------- MAIN APP -------------------------------------------- //
 function App() {
     const { isActive, startSession } = useSessionStore();
-    const { history, loading, sendMessage } = useChatHistoryStore();
+    const { history, loading } = useChatHistoryStore();
+    const { sendTextMessage } = useAudioStore();
 
     const [input, setInput] = useState("");
     const { keyboardEnabled } = useKeyboardStore();
@@ -33,7 +35,7 @@ function App() {
     const handleSend = async () => {
         const currentInput = input;
         setInput(""); // Clear input immediately for UX
-        await sendMessage(currentInput);
+        sendTextMessage(currentInput);
     };
     return (
         <main className="flex flex-col items-center justify-center h-screen">
@@ -61,11 +63,10 @@ function App() {
                                         className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                     >
                                         <div
-                                            className={` min-w-32 p-3 rounded-xl ${
-                                                msg.role === "user"
-                                                    ? "bg-neutral-100 max-w-[80%]"
-                                                    : "bg-none classic-serif w-full text-lg"
-                                            }`}
+                                            className={` min-w-32 p-3 rounded-xl ${msg.role === "user"
+                                                ? "bg-neutral-100 max-w-[80%]"
+                                                : "bg-none classic-serif w-full text-lg"
+                                                }`}
                                         >
                                             <span className="block font-medium text-neutral-600 mb-1 text-[10px] mono opacity-70">
                                                 {msg.role === "user"

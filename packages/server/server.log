@@ -3,26 +3,26 @@ Raw Gemini Message: {
     "turnComplete": true
   },
   "usageMetadata": {
-    "promptTokenCount": 2460,
-    "responseTokenCount": 47,
-    "totalTokenCount": 2507,
+    "promptTokenCount": 935,
+    "responseTokenCount": 412,
+    "totalTokenCount": 1347,
     "promptTokensDetails": [
       {
         "modality": "TEXT",
-        "tokenCount": 2389
+        "tokenCount": 909
       },
       {
         "modality": "AUDIO",
-        "tokenCount": 71
+        "tokenCount": 26
       }
     ],
     "responseTokensDetails": [
       {
         "modality": "AUDIO",
-        "tokenCount": 47
+        "tokenCount": 412
       }
     ],
-    "thoughtsTokenCount": 31
+    "thoughtsTokenCount": 29
   }
 }
 
