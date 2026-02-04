@@ -23,6 +23,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         const keyboard = useKeyboardStore.getState();
         const timer = useSessionTimeStore.getState();
 
+        audio.connect(); // Connect logic
         audio.turnMicOn();
         keyboard.disableKeyboard();
         timer.resetTimer();

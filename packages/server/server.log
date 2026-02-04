@@ -1,0 +1,28 @@
+Raw Gemini Message: {
+  "serverContent": {
+    "turnComplete": true
+  },
+  "usageMetadata": {
+    "promptTokenCount": 1920,
+    "responseTokenCount": 61,
+    "totalTokenCount": 1981,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1853
+      },
+      {
+        "modality": "AUDIO",
+        "tokenCount": 67
+      }
+    ],
+    "responseTokensDetails": [
+      {
+        "modality": "AUDIO",
+        "tokenCount": 61
+      }
+    ],
+    "thoughtsTokenCount": 40
+  }
+}
+

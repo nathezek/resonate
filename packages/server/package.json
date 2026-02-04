@@ -1,0 +1,17 @@
+{
+    "name": "server",
+    "module": "src/index.ts",
+    "type": "module",
+    "scripts": {
+        "dev": "bun run --watch src/index.ts"
+    },
+    "dependencies": {
+        "elysia": "latest",
+        "@google/genai": "^1.39.0",
+        "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.18.1",
+        "bun-types": "latest"
+    }
+}
