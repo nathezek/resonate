@@ -1,0 +1,22 @@
+{
+    "name": "resonate",
+    "module": "index.ts",
+    "type": "module",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.3.3"
+    },
+    "peerDependencies": {
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "@fastify/websocket": "^11.2.0",
+        "@google/adk": "^0.4.0",
+        "fastify": "^5.7.4"
+    }
+}
