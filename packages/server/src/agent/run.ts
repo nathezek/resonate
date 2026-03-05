@@ -1,7 +1,10 @@
-import { InMemoryRunner } from "@google/adk";
+import { Modality } from "@google/genai";
+
+import { InMemoryRunner, StreamingMode } from "@google/adk";
 import { tutor_agent } from "./tutor";
 
 const APP_NAME = "resonate";
+
 const runner = new InMemoryRunner({
   appName: APP_NAME,
   agent: tutor_agent,
@@ -13,7 +16,7 @@ const runner = new InMemoryRunner({
  */
 const sessionMap = new Map<string, string>();
 
-export const run_tutor = async (user_input: string) => {
+export const run_tutor = async (user_input: string, onChunk: (chunk: string) => void) => {
   const userId = "user_1";
   const myFriendlySessionId = "session_1";
   let adkSessionId: string;
@@ -42,11 +45,15 @@ export const run_tutor = async (user_input: string) => {
   let final_response = "";
 
   try {
-    // 3. Run the agent using the CAPTURED adkSessionId
+    // 3. Run the agent with explicit SSE Streaming Configuration
     const stream = runner.runAsync({
       userId: userId,
       sessionId: adkSessionId,
       newMessage: user_message,
+      runConfig: {
+        streamingMode: StreamingMode.SSE, // TODO: I will change this to BIDI when switching to voice mode
+        responseModalities: [Modality.TEXT],
+      }
     });
 
     for await (const event of stream) {
@@ -55,14 +62,16 @@ export const run_tutor = async (user_input: string) => {
         for (const part of event.content.parts) {
           if ("text" in part && part.text) {
             final_response += part.text;
+            onChunk(part.text); // Send it to the UI immediately!
           }
         }
       }
     }
   } catch (error) {
     console.error("❌ Agent Execution Error:", error);
-    return "I'm sorry, I'm having trouble connecting to my brain right now.";
+    onChunk("I'm sorry, I'm having trouble connecting to my brain right now.");
   }
 
+  // 4. Return the final response
   return final_response;
 };
