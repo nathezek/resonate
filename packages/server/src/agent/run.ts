@@ -22,25 +22,10 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
   let adkSessionId: string;
 
   // 1. Resolve the real Session ID
-  if (sessionMap.has(myFriendlySessionId)) {
-    adkSessionId = sessionMap.get(myFriendlySessionId)!;
-  } else {
-    // Create it and let the ADK generate a real UUID
-    const session = await runner.sessionService.createSession({
-      appName: APP_NAME,
-      userId: userId,
-    });
-
-    adkSessionId = session.id;
-    sessionMap.set(myFriendlySessionId, adkSessionId);
-    console.log(`✨ Created new ADK Session: ${adkSessionId} for ${myFriendlySessionId}`);
-  }
+  adkSessionId = await session_resolver(myFriendlySessionId, userId)
 
   // 2. Format the message for the LLM
-  const user_message = {
-    role: "user",
-    parts: [{ text: user_input }],
-  };
+  const user_message = format_user_message(user_input);
 
   let final_response = "";
 
@@ -75,3 +60,34 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
   // 4. Return the final response
   return final_response;
 };
+
+// ------- HELPER FUNCTIONS ---------
+
+// Resolves the session ID for the given friendly session ID and user ID
+async function session_resolver(myFriendlySessionId: string, userId: string) {
+    if (sessionMap.has(myFriendlySessionId)) {
+     return sessionMap.get(myFriendlySessionId)!;
+    } else {
+      // Create it and let the ADK generate a real UUID
+      const session = await runner.sessionService.createSession({
+        appName: APP_NAME,
+        userId: userId,
+      });
+
+      const newAdkSessionId = session.id;
+      sessionMap.set(myFriendlySessionId, newAdkSessionId);
+      console.log(`✨ Created new ADK Session: ${newAdkSessionId} for ${myFriendlySessionId}`);
+
+        return newAdkSessionId;
+    }
+}
+
+// Formats the user input into a message object for the LLM
+function format_user_message(user_input: string) {
+    const user_message = {
+      role: "user",
+      parts: [{ text: user_input }],
+    };
+
+    return user_message;
+}
