@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import  ReactMarkdown from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import './App.css';
 
 type TEXT_MESSAGE = {
@@ -34,7 +34,7 @@ const AgentResponseDisplay = ({ response }: { response: AGENT_MESSAGE }) => {
     if (response.type === "tool_function_call") {
         return (
             <div>
-                <h4>Running { response.tool}</h4>
+                <h4>Running {response.tool}</h4>
                 <pre>
                     {JSON.stringify(response.args, null, 2)}
                 </pre>
@@ -46,20 +46,20 @@ const AgentResponseDisplay = ({ response }: { response: AGENT_MESSAGE }) => {
         const result = response.result;
 
         if (!result) {
-                return <div>Waiting for result...</div>;
+            return <div>Waiting for result...</div>;
         }
 
         return (
             <div className='border border-green-600/40'>
-                <h4>{ response.tool} output:</h4>
+                <h4>{response.tool} output:</h4>
                 {result.success ? (
                     <pre>
                         {result.output}
                     </pre>
                 ) : (
-                        <pre>
-                            Error: {result.error}
-                        </pre>
+                    <pre>
+                        Error: {result.error}
+                    </pre>
                 )}
             </div>
         )
@@ -73,7 +73,7 @@ const AgentResponseDisplay = ({ response }: { response: AGENT_MESSAGE }) => {
 
     if (response.type === "error") {
         return (
-            <span>{ response.data}</span>
+            <span>{response.data}</span>
         )
     }
 
@@ -89,10 +89,17 @@ function App() {
     const ws = useRef<WebSocket | null>(null);
 
     useEffect(() => {
+        let didCleanup = false;
+
         const connect = () => {
             const socket = new WebSocket("ws://localhost:3001/ws");
 
             socket.onopen = () => {
+                // If StrictMode already ran cleanup, close this stale socket
+                if (didCleanup) {
+                    socket.close();
+                    return;
+                }
                 console.log("✅ WS Connected");
             };
 
@@ -136,30 +143,30 @@ function App() {
         connect();
 
         return () => {
-            // Clean up: stop the socket if the component unmounts
-            if (ws.current?.readyState === WebSocket.OPEN || ws.current?.readyState === WebSocket.CONNECTING) {
+            didCleanup = true;
+            if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
                 ws.current.close();
             }
         };
     }, []);
 
     const sendMessage = (e: React.SubmitEvent) => {
-            e.preventDefault();
-            if (!input.trim()) return;
+        e.preventDefault();
+        if (!input.trim()) return;
 
-            // Check if the socket exists AND is fully connected (readyState === 1)
-            if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-                // 1. Clear previous response so the new one starts fresh
-                setAgentResponse([{ data: '', type: 'loading' }]);
+        // Check if the socket exists AND is fully connected (readyState === 1)
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            // 1. Clear previous response so the new one starts fresh
+            setAgentResponse([{ data: '', type: 'loading' }]);
 
-                // 2. Send the message
-                ws.current.send(input);
-                setInput('');
-            } else {
-                console.warn("⚠️ Cannot send message: WebSocket is not open yet.");
-                //Show an alert to user if websocket connection is not established
-                setAgentResponse([{ data: 'Error: Not connected to server. Please refresh.', type: 'error' }]);
-            }
+            // 2. Send the message
+            ws.current.send(input);
+            setInput('');
+        } else {
+            console.warn("⚠️ Cannot send message: WebSocket is not open yet.");
+            //Show an alert to user if websocket connection is not established
+            setAgentResponse([{ data: 'Error: Not connected to server. Please refresh.', type: 'error' }]);
+        }
     };
 
     return (
@@ -178,7 +185,7 @@ function App() {
             <h1 className="mb-4">Agent response</h1>
             <div className="whitespace-pre-wrap min-h-25 lg:w-xl text-neutral-400">
                 {agent_response.map((res, idx) => (
-                    <AgentResponseDisplay  key={idx} response={res}/>
+                    <AgentResponseDisplay key={idx} response={res} />
                 ))}
             </div>
         </div>
