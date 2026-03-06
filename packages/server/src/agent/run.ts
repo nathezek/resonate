@@ -49,9 +49,40 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
             final_response += part.text;
             onChunk(part.text); // Send it to the UI immediately!
           }
+
+            if ("functionCall" in part && part.functionCall) {
+                const call = part.functionCall;
+              console.log(`🔧 Tool called:, ${call.name}`);
+              console.log(`🗳️ With arguments:, ${call.args}`)
+
+                onChunk(JSON.stringify({
+                    type: "tool_function_call",
+                    tool: call.name,
+                    args: call.args
+                }));
+            }
+
+            if ("functionResponse" in part && part.functionResponse) {
+                const tool_function_response = part.functionResponse;
+
+                console.log(`✅ Tool Function Response: ${tool_function_response.response}`)
+
+                onChunk(JSON.stringify(
+                    {
+                        type: "tool_function_result",
+                        tool: tool_function_response.name,
+                        result: tool_function_response.response,
+                        success: true,
+                    }
+                ));
+
+            }
         }
       }
+
+
     }
+
   } catch (error) {
     console.error("❌ Agent Execution Error:", error);
     onChunk("I'm sorry, I'm having trouble connecting to my brain right now.");

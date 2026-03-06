@@ -20,12 +20,18 @@ app.get("/ws", { websocket: true }, (socket, req) => {
     try {
       // 1. Call run_tutor with the streaming callback
       const fullResult = await run_tutor(userInput, (chunk) => {
-        socket.send(
-          JSON.stringify({
-            type: "chunk",
-            data: chunk,
-          })
-        );
+
+          if (chunk.startsWith('{') && chunk.includes('"type"')) {
+              socket.send(chunk)
+          }
+          else {
+              socket.send(
+                  JSON.stringify({
+                      type: "chunk",
+                      data: chunk,
+                  })
+              );
+          }
       });
 
       console.log("Agent finished responding");
