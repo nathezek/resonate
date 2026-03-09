@@ -1,5 +1,6 @@
 import { LlmAgent } from "@google/adk";
 import { code_executor } from "./tools/code_executor";
+import { quiz_generator } from "./tools/quiz_generator";
 
 export const tutor_agent = new LlmAgent({
     name: "tutor",
@@ -53,5 +54,5 @@ export const tutor_agent = new LlmAgent({
 
     Remember: A good tutor makes the student feel smart, not the tutor.
         `,
-        tools: [code_executor]
+    tools: [code_executor, quiz_generator],
 });
