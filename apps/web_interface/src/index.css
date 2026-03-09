@@ -48,3 +48,23 @@ button{
 .use_ibm{
     font-family: "IBM", sans-serif;
 }
+
+.learning_canvas {
+    min-height: 100vh;
+    width: 100%;
+
+    /* Grid background */
+    background-color: var(--background);
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px; /* Grid cell size */
+
+    /* Padding for content */
+    padding: 2rem;
+
+    /* Flex layout for centering content */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
