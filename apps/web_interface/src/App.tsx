@@ -4,6 +4,7 @@ import ShikiHighlighter from "react-shiki";
 import ThemesProvider from "./modules/themes/themes_provider";
 import Navbar from "./modules/navbar/navbar";
 import { useSession } from "./stores/session_store";
+import LearningCanvas from "./modules/learning_canvas/learning_canvas";
 
 type TEXT_MESSAGE = {
     type: "chunk" | "response" | "loading" | "error";
@@ -240,31 +241,33 @@ function App() {
         <ThemesProvider>
             {has_session_started ? (
                 <>
-                    <Navbar />
-                    <div className="p-8 flex flex-col items-center justify-center gap-y-4">
-                        <form onSubmit={sendMessage}>
-                            <input
-                                className="border p-2 rounded"
-                                type="text"
-                                placeholder="Seek and you shall find..."
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                            />
-                            <button className="bg-blue-500 text-white px-4 py-2 rounded">
-                                Send
-                            </button>
-                        </form>
-
-                        <h1 className="mb-4">Agent response</h1>
-                        <div className="whitespace-pre-wrap min-h-25 lg:w-xl text-neutral-400">
-                            {agent_response.map((res, idx) => (
-                                <AgentResponseDisplay
-                                    key={idx}
-                                    response={res}
+                    <LearningCanvas>
+                        <Navbar />
+                        <div className="p-8 flex flex-col items-center justify-center gap-y-4">
+                            <form onSubmit={sendMessage}>
+                                <input
+                                    className="border p-2 rounded"
+                                    type="text"
+                                    placeholder="Seek and you shall find..."
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
                                 />
-                            ))}
+                                <button className="bg-blue-500 text-white px-4 py-2 rounded">
+                                    Send
+                                </button>
+                            </form>
+
+                            <h1 className="mb-4">Agent response</h1>
+                            <div className="whitespace-pre-wrap min-h-25 lg:w-xl text-neutral-700">
+                                {agent_response.map((res, idx) => (
+                                    <AgentResponseDisplay
+                                        key={idx}
+                                        response={res}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    </LearningCanvas>
                 </>
             ) : (
                 <div className="w-full h-screen flex flex-col items-center justify-center gap-4">
