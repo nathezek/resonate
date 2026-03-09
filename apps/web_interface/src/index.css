@@ -1,8 +1,18 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+	font-family: "Source_Serif";
+	src: url("../public/fonts/SourceSerif.ttf");
+}
+
+@font-face {
+	font-family: "Inter";
+	src: url("../public/fonts/InterTight.ttf");
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Source_Serif", monospace;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -17,7 +27,7 @@
 }
 
 .dark {
-    --background: var(--color-neutral-900);
+    --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-100);
 }
 
@@ -37,4 +47,8 @@ button {
   font-family: inherit;
   cursor: pointer;
   transition: border-color 0.25s;
+}
+
+.use_inter{
+    font-family: "Inter", sans-serif;
 }
