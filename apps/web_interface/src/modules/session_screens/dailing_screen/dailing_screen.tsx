@@ -34,7 +34,9 @@ const DialingScreen = () => {
 
             {/* Status Text */}
             <h1 className="">Calling Ress...</h1>
-            <p className="">Connecting to your study session</p>
+            <p className="text-base opacity-70 mt-1 mb-4">
+                Connecting to your study session
+            </p>
             <button
                 onClick={end_session}
                 className="bg-neutral-200 text-neutral-800 my-4 h-10 rounded-xl flex items-center justify-center w-28"
