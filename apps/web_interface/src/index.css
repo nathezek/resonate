@@ -3,12 +3,12 @@
 
 @font-face {
 	font-family: "Source_Serif";
-	src: url("../public/fonts/SourceSerif.ttf");
+	src: url("/fonts/SourceSerif.ttf");
 }
 
 @font-face {
-	font-family: "Inter";
-	src: url("../public/fonts/InterTight.ttf");
+	font-family: "IBM";
+	src: url("/fonts/IBMPlexSans-VariableFont.ttf");
 }
 
 :root {
@@ -39,16 +39,12 @@ body {
   color: var(--color);
 }
 
-button {
-  padding: 0.6em 1em;
-  font-size: 1em;
-  font-weight: 500;
-  outline: none;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.25s;
+button{
+    cursor: pointer;
+    padding: 0.6em 1em;
+    outline: none;
 }
 
-.use_inter{
-    font-family: "Inter", sans-serif;
+.use_ibm{
+    font-family: "IBM", sans-serif;
 }
