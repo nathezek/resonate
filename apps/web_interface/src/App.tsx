@@ -4,7 +4,9 @@ import ShikiHighlighter from "react-shiki";
 import ThemesProvider from "./modules/themes/themes_provider";
 import Navbar from "./modules/navbar/navbar";
 import { useSession } from "./stores/session_store";
-import LearningCanvas from "./modules/learning_canvas/learning_canvas";
+import LearningCanvas from "./modules/session_screens/learning_canvas/learning_canvas";
+import StartSessionScreen from "./modules/session_screens/start_session_screen/start_session_screen";
+import DailingScreen from "./modules/session_screens/dailing_screen/dailing_screen";
 
 type TEXT_MESSAGE = {
     type: "chunk" | "response" | "loading" | "error";
@@ -141,7 +143,7 @@ const AgentResponseDisplay = ({ response }: { response: AGENT_MESSAGE }) => {
 function App() {
     const [input, setInput] = useState("");
     const [agent_response, setAgentResponse] = useState<AGENT_MESSAGE[]>([]);
-    const { has_session_started, start_session } = useSession();
+    const { session_status } = useSession();
     // WebSocket related
     const ws = useRef<WebSocket | null>(null);
 
@@ -239,7 +241,9 @@ function App() {
 
     return (
         <ThemesProvider>
-            {has_session_started ? (
+            {session_status === "idle" && <StartSessionScreen />}
+            {session_status === "dialing" && <DailingScreen />}
+            {session_status === "active" && (
                 <>
                     <LearningCanvas>
                         <Navbar />
@@ -269,12 +273,6 @@ function App() {
                         </div>
                     </LearningCanvas>
                 </>
-            ) : (
-                <div className="w-full h-screen flex flex-col items-center justify-center gap-4">
-                    <button onClick={() => start_session()}>
-                        Start Session
-                    </button>
-                </div>
             )}
         </ThemesProvider>
     );

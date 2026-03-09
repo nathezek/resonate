@@ -2,12 +2,13 @@ import { create } from "zustand";
 
 type SESSION_STATE_TYPES = {
     // States
-    has_session_started: boolean;
+    session_status: "idle" | "dialing" | "active";
     is_mic_muted: boolean;
     is_session_paused: boolean;
     session_start_time: number | null;
 
     // Actions
+    start_dailing: () => void;
     start_session: () => Promise<void>;
     end_session: () => void;
     toggle_mute: () => void;
@@ -16,18 +17,21 @@ type SESSION_STATE_TYPES = {
 
 export const useSession = create<SESSION_STATE_TYPES>((set) => ({
     // ---- Initial States -----
-    has_session_started: false,
+    session_status: "idle",
     is_mic_muted: false,
     is_session_paused: false,
     session_start_time: null,
 
     // ----- Actions ------
+
+    start_dailing: () => set({ session_status: "dialing" }),
+
     start_session: async () =>
-        set({ has_session_started: true, session_start_time: Date.now() }),
+        set({ session_status: "active", session_start_time: Date.now() }),
 
     end_session: () =>
         set({
-            has_session_started: false,
+            session_status: "idle",
             is_mic_muted: false,
             is_session_paused: false,
             session_start_time: null,
