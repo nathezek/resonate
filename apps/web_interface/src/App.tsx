@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import "./App.css";
+// import "./App.css";
 import ShikiHighlighter from "react-shiki";
+import { ThemeSwitcher } from "./modules/themes/theme_switcher";
+import ThemesProvider from "./modules/themes/themes_provider";
 
 type TEXT_MESSAGE = {
     type: "chunk" | "response" | "loading" | "error";
@@ -233,6 +235,9 @@ function App() {
     };
 
     return (
+        <ThemesProvider>
+
+
         <div className="p-8 flex flex-col items-center justify-center gap-y-4">
             <form onSubmit={sendMessage}>
                 <input
@@ -246,6 +251,7 @@ function App() {
                     Send
                 </button>
             </form>
+            <ThemeSwitcher />
 
             <h1 className="mb-4">Agent response</h1>
             <div className="whitespace-pre-wrap min-h-25 lg:w-xl text-neutral-400">
@@ -254,6 +260,7 @@ function App() {
                 ))}
             </div>
         </div>
+        </ThemesProvider>
     );
 }
 
