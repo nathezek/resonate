@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { useChat } from "./chat_store";
+import { useKeyboard } from "./keyboard_store";
 
 type SESSION_STATE_TYPES = {
     // States
@@ -29,13 +31,17 @@ export const useSession = create<SESSION_STATE_TYPES>((set) => ({
     start_session: async () =>
         set({ session_status: "active", session_start_time: Date.now() }),
 
-    end_session: () =>
+    end_session: () => {
+        useChat.getState().clear_all_messages();
+        useKeyboard.getState().disable_keyboard();
+
         set({
             session_status: "idle",
             is_mic_muted: false,
             is_session_paused: false,
             session_start_time: null,
-        }),
+        });
+    },
 
     toggle_session_pause: () =>
         set((state) => ({ is_session_paused: !state.is_session_paused })),

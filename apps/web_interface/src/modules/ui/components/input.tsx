@@ -33,7 +33,7 @@ const Input = ({
             ref={inputRef}
             placeholder={placeholder}
             value={value}
-            className={`w-full p-2 outline-none text-sm bg-transparent text-neutral-800 dark:text-neutral-200 ${styling}`}
+            className={`w-full p-2 outline-none text-base bg-transparent text-neutral-800 dark:text-neutral-200 ${styling}`}
             onChange={(e) => setInput(e.target.value)}
             autoComplete="off"
             onKeyDown={(e) => {

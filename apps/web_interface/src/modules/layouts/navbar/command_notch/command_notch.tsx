@@ -55,8 +55,7 @@ export const CommandNotch = () => {
             {/*---- Center ----*/}
             <MicVisualizer
                 isActive={
-                    session_status === "active" &&
-                    is_mic_muted &&
+                    (session_status === "active" && is_mic_muted) ||
                     is_session_paused
                 }
             />
