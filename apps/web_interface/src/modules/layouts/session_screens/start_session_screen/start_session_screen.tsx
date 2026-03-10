@@ -1,4 +1,4 @@
-import { useSession } from "../../../stores/session_store";
+import { useSession } from "../../../../stores/session_store";
 
 const StartSessionScreen = () => {
     const { start_dailing } = useSession();

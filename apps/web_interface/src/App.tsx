@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import ShikiHighlighter from "react-shiki";
 import ThemesProvider from "./modules/themes/themes_provider";
-import Navbar from "./modules/navbar/navbar";
+import Navbar from "./modules/layouts/navbar/navbar";
 import { useSession } from "./stores/session_store";
-import LearningCanvas from "./modules/session_screens/learning_canvas/learning_canvas";
-import StartSessionScreen from "./modules/session_screens/start_session_screen/start_session_screen";
-import DailingScreen from "./modules/session_screens/dailing_screen/dailing_screen";
+import LearningCanvas from "./modules/layouts/session_screens/learning_canvas/learning_canvas";
+import StartSessionScreen from "./modules/layouts/session_screens/start_session_screen/start_session_screen";
+import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dailing_screen";
+import Footer from "./modules/layouts/footer/footer";
 
 type TEXT_MESSAGE = {
     type: "chunk" | "response" | "loading" | "error";
@@ -271,6 +272,7 @@ function App() {
                                 ))}
                             </div>
                         </div>
+                        <Footer />
                     </LearningCanvas>
                 </>
             )}

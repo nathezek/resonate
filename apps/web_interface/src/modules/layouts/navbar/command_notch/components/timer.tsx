@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSession } from "../../../../stores/session_store";
+import { useSession } from "../../../../../stores/session_store";
 
 const Timer = () => {
     const { session_start_time, is_session_paused } = useSession();

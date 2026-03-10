@@ -1,15 +1,22 @@
-import { useEffect, useRef} from "react";
+import { useEffect, useRef } from "react";
 
 type TYPE_INPUT = {
     type: "text" | "radio" | "number";
     placeholder: string;
     setInput: (val: string) => void;
-    input: string;
+    value: string;
     handleSend: () => void;
-    styling: string;
-}
+    styling?: string;
+};
 
-const Input = ({type="text" , styling, input, setInput, placeholder, handleSend} : TYPE_INPUT) => {
+const Input = ({
+    type = "text",
+    styling,
+    value,
+    setInput,
+    placeholder,
+    handleSend,
+}: TYPE_INPUT) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -21,12 +28,14 @@ const Input = ({type="text" , styling, input, setInput, placeholder, handleSend}
     }, []);
 
     return (
-        <input type={type}
+        <input
+            type={type}
             ref={inputRef}
             placeholder={placeholder}
-            value={input}
-            className={`w-full p-2 text-sm bg-transparent text-neutral-800 dark:text-neutral-200 ${styling}`}
-            onChange={(e) => setInput(e.target.value)} autoComplete="off"
+            value={value}
+            className={`w-full p-2 outline-none text-sm bg-transparent text-neutral-800 dark:text-neutral-200 ${styling}`}
+            onChange={(e) => setInput(e.target.value)}
+            autoComplete="off"
             onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -34,8 +43,7 @@ const Input = ({type="text" , styling, input, setInput, placeholder, handleSend}
                 }
             }}
         />
-    )
-}
-
+    );
+};
 
 export default Input;

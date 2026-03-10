@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSession } from "../../../stores/session_store";
+import { useSession } from "../../../../stores/session_store";
 import { IconPhone } from "@tabler/icons-react";
 
 const DialingScreen = () => {
