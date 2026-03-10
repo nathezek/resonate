@@ -1,6 +1,6 @@
 import { Modality } from "@google/genai";
 
-import { InMemoryRunner, StreamingMode } from "@google/adk";
+import { InMemoryRunner, StreamingMode, isFinalResponse } from "@google/adk";
 import { tutor_agent } from "./tutor";
 
 const APP_NAME = "resonate";
@@ -22,25 +22,10 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
   let adkSessionId: string;
 
   // 1. Resolve the real Session ID
-  if (sessionMap.has(myFriendlySessionId)) {
-    adkSessionId = sessionMap.get(myFriendlySessionId)!;
-  } else {
-    // Create it and let the ADK generate a real UUID
-    const session = await runner.sessionService.createSession({
-      appName: APP_NAME,
-      userId: userId,
-    });
-
-    adkSessionId = session.id;
-    sessionMap.set(myFriendlySessionId, adkSessionId);
-    console.log(`✨ Created new ADK Session: ${adkSessionId} for ${myFriendlySessionId}`);
-  }
+  adkSessionId = await session_resolver(myFriendlySessionId, userId)
 
   // 2. Format the message for the LLM
-  const user_message = {
-    role: "user",
-    parts: [{ text: user_input }],
-  };
+  const user_message = format_user_message(user_input);
 
   let final_response = "";
 
@@ -57,16 +42,51 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
     });
 
     for await (const event of stream) {
-      // The ADK emits events; this specifically extracts 'content' events
+      // Skip final events for text — they duplicate already-streamed partial content
+      const isFinal = isFinalResponse(event);
+
       if (event.content?.parts) {
         for (const part of event.content.parts) {
           if ("text" in part && part.text) {
             final_response += part.text;
-            onChunk(part.text); // Send it to the UI immediately!
+            if (!isFinal) {
+              onChunk(part.text); // Only stream non-final events to the UI
+            }
+          }
+
+          if ("functionCall" in part && part.functionCall) {
+            const call = part.functionCall;
+            console.log(`🔧 Tool called:, ${call.name}`);
+            console.log(`🗳️ With arguments:, ${call.args}`)
+
+            onChunk(JSON.stringify({
+              type: "tool_function_call",
+              tool: call.name,
+              args: call.args
+            }));
+          }
+
+          if ("functionResponse" in part && part.functionResponse) {
+            const tool_function_response = part.functionResponse;
+
+            console.log(`✅ Tool Function Response: ${tool_function_response.response}`)
+
+            onChunk(JSON.stringify(
+              {
+                type: "tool_function_result",
+                tool: tool_function_response.name,
+                result: tool_function_response.response,
+                success: true,
+              }
+            ));
+
           }
         }
       }
+
+
     }
+
   } catch (error) {
     console.error("❌ Agent Execution Error:", error);
     onChunk("I'm sorry, I'm having trouble connecting to my brain right now.");
@@ -75,3 +95,34 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
   // 4. Return the final response
   return final_response;
 };
+
+// ------- HELPER FUNCTIONS ---------
+
+// Resolves the session ID for the given friendly session ID and user ID
+async function session_resolver(myFriendlySessionId: string, userId: string) {
+  if (sessionMap.has(myFriendlySessionId)) {
+    return sessionMap.get(myFriendlySessionId)!;
+  } else {
+    // Create it and let the ADK generate a real UUID
+    const session = await runner.sessionService.createSession({
+      appName: APP_NAME,
+      userId: userId,
+    });
+
+    const newAdkSessionId = session.id;
+    sessionMap.set(myFriendlySessionId, newAdkSessionId);
+    console.log(`✨ Created new ADK Session: ${newAdkSessionId} for ${myFriendlySessionId}`);
+
+    return newAdkSessionId;
+  }
+}
+
+// Formats the user input into a message object for the LLM
+function format_user_message(user_input: string) {
+  const user_message = {
+    role: "user",
+    parts: [{ text: user_input }],
+  };
+
+  return user_message;
+}

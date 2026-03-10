@@ -1,35 +1,55 @@
-import { useEffect, useRef, useState } from 'react';
-import  ReactMarkdown from "react-markdown";
-import './App.css';
-
-type AGENT_MESSAGE = {
-    data: string;
-    type: string;
-}
+import { useEffect, useRef } from "react";
+import ThemesProvider from "./modules/themes/themes_provider";
+import Navbar from "./modules/layouts/navbar/navbar";
+import { useSession } from "./stores/session_store";
+import LearningCanvas from "./modules/layouts/session_screens/learning_canvas/learning_canvas";
+import StartSessionScreen from "./modules/layouts/session_screens/start_session_screen/start_session_screen";
+import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dailing_screen";
+import Footer from "./modules/layouts/footer/footer";
+import { useChat, type AGENT_CONTENT } from "./stores/chat_store";
+import ChatHistory from "./modules/conversations/chat_history";
 
 function App() {
-    const [input, setInput] = useState('');
-    // Initialize with empty strings so the UI doesn't crash on undefined
-    const [agent_response, setAgentResponse] = useState<AGENT_MESSAGE>({ data: '', type: '' });
+    const { session_status } = useSession();
+
+    const {
+        append_agent_chunk,
+        add_agent_tool_call,
+        add_agent_tool_result,
+        finish_agent_response,
+    } = useChat();
+
+    // WebSocket related
     const ws = useRef<WebSocket | null>(null);
 
+    // ---- Establish WebSocket Connection ------
     useEffect(() => {
+        let didCleanup = false;
+
         const connect = () => {
             const socket = new WebSocket("ws://localhost:3001/ws");
 
             socket.onopen = () => {
+                // If StrictMode already ran cleanup, close this stale socket
+                if (didCleanup) {
+                    socket.close();
+                    return;
+                }
                 console.log("✅ WS Connected");
             };
 
             socket.onmessage = (event) => {
-                const incoming: AGENT_MESSAGE = JSON.parse(event.data);
-                if (incoming.type === 'chunk') {
-                    setAgentResponse((prev) => ({
-                        type: 'chunk',
-                        data: prev.data + incoming.data
-                    }));
-                } else if (incoming.type === 'response') {
-                    setAgentResponse({ type: 'response', data: incoming.data });
+                const incoming: AGENT_CONTENT = JSON.parse(event.data);
+
+                if (incoming.type === "chunk") {
+                    append_agent_chunk(incoming.data);
+                } else if (incoming.type === "response") {
+                    console.log("Received response");
+                    finish_agent_response();
+                } else if (incoming.type === "tool_function_call") {
+                    add_agent_tool_call(incoming.tool, incoming.args);
+                } else if (incoming.type === "tool_function_result") {
+                    add_agent_tool_result(incoming.tool, incoming.result);
                 }
             };
 
@@ -42,53 +62,45 @@ function App() {
         connect();
 
         return () => {
-            // Clean up: stop the socket if the component unmounts
-            if (ws.current) {
+            didCleanup = true;
+            if (
+                ws.current &&
+                (ws.current.readyState === WebSocket.OPEN ||
+                    ws.current.readyState === WebSocket.CONNECTING)
+            ) {
                 ws.current.close();
             }
         };
-    }, []);
+    }, [
+        append_agent_chunk,
+        add_agent_tool_call,
+        add_agent_tool_result,
+        finish_agent_response,
+    ]);
 
-    const sendMessage = (e: React.SubmitEvent) => {
-            e.preventDefault();
-            if (!input.trim()) return;
-
-            // Check if the socket exists AND is fully connected (readyState === 1)
-            if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-                // 1. Clear previous response so the new one starts fresh
-                setAgentResponse({ data: '', type: 'loading' });
-
-                // 2. Send the message
-                ws.current.send(input);
-                setInput('');
-            } else {
-                console.warn("⚠️ Cannot send message: WebSocket is not open yet.");
-                //Show an alert to user if websocket connection is not established
-                setAgentResponse({ data: 'Error: Not connected to server. Please refresh.', type: 'error' });
-            }
+    // --- Send User Messages ----
+    const sendMessage = (message: string) => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(message);
+        } else {
+            console.warn("⚠️ Cannot send message: WebSocket is not open yet.");
+        }
     };
 
     return (
-        <div className="p-8 flex flex-col items-center justify-center gap-y-4">
-            <form onSubmit={sendMessage}>
-                <input
-                    className="border p-2 rounded"
-                    type="text"
-                    placeholder='Ask your tutor...'
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                />
-                <button className="bg-blue-500 text-white px-4 py-2 rounded">Send</button>
-            </form>
-
-            <h1 className="mb-4">Agent response</h1>
-            <div className="whitespace-pre-wrap min-h-25 lg:w-xl text-neutral-400">
-                <ReactMarkdown>
-                    {agent_response.data}
-               </ReactMarkdown>
-                {agent_response.type === 'loading' && <span className="animate-pulse">...</span>}
-            </div>
-        </div>
+        <ThemesProvider>
+            {session_status === "idle" && <StartSessionScreen />}
+            {session_status === "dialing" && <DailingScreen />}
+            {session_status === "active" && (
+                <>
+                    <LearningCanvas>
+                        <Navbar />
+                        <ChatHistory />
+                        <Footer onSend={sendMessage} />
+                    </LearningCanvas>
+                </>
+            )}
+        </ThemesProvider>
     );
 }
 
