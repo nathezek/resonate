@@ -31,6 +31,7 @@ type CHAT_STORE_TYPES = {
     messages: CHAT_MESSAGE[];
     is_agent_responding: boolean;
     current_user_message: string | null;
+    has_tools: boolean;
 
     // ACTIONS
     add_user_message: (text: string) => void;
@@ -52,6 +53,7 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
     messages: [],
     is_agent_responding: false,
     current_user_message: null,
+    has_tools: false,
 
     // ---- ACTIONS -----
     add_user_message: (text) => {
@@ -149,7 +151,7 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
 
             messages[last_index] = agent_message;
 
-            return { messages };
+            return { messages, has_tools: true };
         });
     },
 
@@ -187,6 +189,7 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
             messages: [],
             is_agent_responding: false,
             current_user_message: null,
+            has_tools: false,
         });
     },
 }));
