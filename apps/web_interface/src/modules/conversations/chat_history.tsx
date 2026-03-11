@@ -7,7 +7,7 @@ import {
 import AgentResponseDisplay from "../agent/agent_response";
 
 const ChatHistory = () => {
-    const { messages } = useChat();
+    const { messages, is_tool_panel_open } = useChat();
 
     const containerRef = useRef<HTMLDivElement>(null);
     const prevAgentCountRef = useRef<number>(0);
@@ -72,7 +72,17 @@ const ChatHistory = () => {
     }
 
     return (
-        <div ref={containerRef} className="flex-1 w-full overflow-y-auto pb-[100vh]">
+        <div
+            ref={containerRef}
+            className="flex-1 w-full relative overflow-y-auto pb-[100vh]"
+        >
+            {is_tool_panel_open && (
+                <div className="flex items-center sticky top-0 py-2.5 justify-between z-30 bg-neutral-200 w-full px-3">
+                    <h3 className="text-sm font-medium text-neutral-700">
+                        Conversation History
+                    </h3>
+                </div>
+            )}
             <div className="max-w-2xl mx-auto space-y-4">
                 {agent_messages.map((message) => (
                     <MessageBubble
@@ -93,15 +103,17 @@ type MESSAGE_BUBBLE_TYPES = {
 };
 
 const MessageBubble = ({ message, turn_number }: MESSAGE_BUBBLE_TYPES) => {
-    const agent_text_content = message.agent_content.filter(
+    const has_visible_content = message.agent_content.some(
         (item) =>
             item.type === "chunk" ||
             item.type === "response" ||
             item.type === "loading" ||
-            item.type === "error",
+            item.type === "error" ||
+            item.type === "tool_function_call" ||
+            item.type === "tool_function_result",
     );
 
-    if (agent_text_content.length === 0) {
+    if (!has_visible_content) {
         return null;
     }
 
@@ -116,32 +128,93 @@ const MessageBubble = ({ message, turn_number }: MESSAGE_BUBBLE_TYPES) => {
             )}
 
             <div className="flex justify-center p-4 text-neutral-800 dark:text-neutral-200">
-                <AgentMessageContent content={message.agent_content} />
+                <AgentMessageContent
+                    content={message.agent_content}
+                    message_id={message.id}
+                />
             </div>
         </div>
     );
 };
 
-// Render agent message content
-const AgentMessageContent = ({ content }: { content: AGENT_CONTENT[] }) => {
-    const text_content = content.filter(
-        (item) =>
-            item.type === "chunk" ||
-            item.type === "response" ||
-            item.type === "loading" ||
-            item.type === "error",
-    );
+// Render agent message content — includes tool-ref chips inline
+const AgentMessageContent = ({
+    content,
+    message_id,
+}: {
+    content: AGENT_CONTENT[];
+    message_id: string;
+}) => {
+    const { set_tool_panel_open } = useChat();
 
-    if (text_content.length === 0) {
+    if (content.length === 0) {
         return <span className="text-neutral-400">...</span>;
     }
 
     return (
         <div className="space-y-2">
-            {text_content.map((item, idx) => (
-                <AgentResponseDisplay key={idx} response={item} />
-            ))}
+            {content.map((item, idx) => {
+                // Tool items render as clickable reference chips
+                if (
+                    item.type === "tool_function_call" ||
+                    item.type === "tool_function_result"
+                ) {
+                    return (
+                        <ToolRefChip
+                            key={idx}
+                            tool_name={item.tool}
+                            message_id={message_id}
+                            on_open_panel={() => set_tool_panel_open(true)}
+                        />
+                    );
+                }
+
+                // Text items render normally
+                return <AgentResponseDisplay key={idx} response={item} />;
+            })}
         </div>
+    );
+};
+
+// Clickable chip that links to a tool call in the tool panel
+const ToolRefChip = ({
+    tool_name,
+    message_id,
+    on_open_panel,
+}: {
+    tool_name: string;
+    message_id: string;
+    on_open_panel: () => void;
+}) => {
+    const handle_click = () => {
+        // Open the panel first
+        on_open_panel();
+
+        // Wait for panel to render, then scroll to the tool turn
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const element = document.getElementById(
+                    `tool-turn-${message_id}`,
+                );
+                if (element) {
+                    element.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+                }
+            }, 100);
+        });
+    };
+
+    return (
+        <button
+            onClick={handle_click}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-yellow-400/10 border border-yellow-400/30 text-yellow-500 dark:text-yellow-400 text-xs font-medium hover:bg-yellow-400/20 hover:border-yellow-400/50 transition-all cursor-pointer"
+        >
+            <span>⚡</span>
+            <span>{tool_name}</span>
+            <span className="text-[10px] opacity-60">→</span>
+        </button>
     );
 };
 

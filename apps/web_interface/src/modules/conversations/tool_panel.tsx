@@ -7,9 +7,10 @@ import {
     type TOOL_RESULT_MESSAGE,
 } from "../../stores/chat_store";
 import ShikiHighlighter from "react-shiki";
+import { IconBoxAlignBottomLeftFilled } from "@tabler/icons-react";
 
 const ToolPanel = () => {
-    const { messages } = useChat();
+    const { messages, toggle_tool_panel } = useChat();
     const containerRef = useRef<HTMLDivElement>(null);
     const prevToolCountRef = useRef<number>(0);
 
@@ -24,8 +25,7 @@ const ToolPanel = () => {
     });
 
     const toolCount = message_with_tool.length;
-    const latestToolId =
-        message_with_tool[message_with_tool.length - 1]?.id;
+    const latestToolId = message_with_tool[message_with_tool.length - 1]?.id;
 
     // Auto-scroll to latest tool turn when new tools arrive
     useEffect(() => {
@@ -65,9 +65,20 @@ const ToolPanel = () => {
     return (
         <div
             ref={containerRef}
-            className="h-full overflow-y-auto space-y-2 flex flex-col items-start pb-[100vh]"
+            className="h-full overflow-y-auto space-y-2 flex relative flex-col items-start pb-[100vh]"
         >
-            <h3>Tool Output</h3>
+            <div className="flex items-center sticky top-0 justify-between z-30 bg-neutral-200 w-full px-3">
+                <h3 className="text-sm font-medium text-neutral-700">
+                    Tool Output
+                </h3>
+                <button
+                    onClick={toggle_tool_panel}
+                    className="text-neutral-700 hover:text-neutral-600 transition-colors text-lg leading-none cursor-pointer"
+                    title="Close tool panel"
+                >
+                    <IconBoxAlignBottomLeftFilled size={18} />
+                </button>
+            </div>
             {message_with_tool.map((message, index) => (
                 <ToolTurn
                     key={index}
@@ -96,16 +107,16 @@ const ToolTurn = ({ message, turn_number }: TOOL_TURN_TYPES) => {
     );
 
     return (
-        <div className="mb-4" id={`tool-turn-${message.id}`}>
+        <div className="mb-4 w-full" id={`tool-turn-${message.id}`}>
             {/* Sticky Header */}
-            <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-3 py-2">
+            <div className="sticky top-9 z-10 bg-neutral-800 border-b border-neutral-700 px-3 py-2">
                 <span className="text-xs font-medium text-neutral-400">
                     Turn {turn_number}
                 </span>
             </div>
 
             {/* Tool Items */}
-            <div className="space-y-2 p-2">
+            <div className="space-y-2 mb-24">
                 {tool_content.map((content, index) => (
                     <ToolItem key={index} content={content} />
                 ))}
@@ -119,7 +130,7 @@ const ToolItem = ({ content }: { content: AGENT_CONTENT }) => {
         const code = content.args?.code;
 
         return (
-            <div className="rounded-lg overflow-hidden border border-neutral-700">
+            <div className="overflow-hidden border border-neutral-700">
                 <div className="bg-neutral-700 text-neutral-200 px-3 py-2 text-sm flex items-center gap-2">
                     <span className="text-yellow-400">⚡</span>
                     <span>Running {content.tool}</span>
@@ -154,7 +165,7 @@ const ToolItem = ({ content }: { content: AGENT_CONTENT }) => {
         }
 
         return (
-            <div className="rounded-lg overflow-hidden border border-neutral-700">
+            <div className=" rounded-b-sm overflow-hidden border border-neutral-700">
                 <div
                     className={`px-3 py-2 text-sm flex items-center gap-2 ${
                         result.success

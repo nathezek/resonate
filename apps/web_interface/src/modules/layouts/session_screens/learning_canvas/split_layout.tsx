@@ -5,18 +5,29 @@ import ChatHistory from "../../../conversations/chat_history";
 import { useChat } from "../../../../stores/chat_store";
 
 const SplitLayout = () => {
-    const { has_tools } = useChat();
+    const { has_tools, is_tool_panel_open } = useChat();
 
+    // No tools yet — full-width chat
     if (!has_tools) {
         return <ChatHistory />;
     }
 
+    // Tools exist but panel is closed — full-width chat + floating button
+    if (!is_tool_panel_open) {
+        return (
+            <div className="flex flex-1 flex-col w-full pt-24 overflow-hidden h-full relative">
+                <ChatHistory />
+            </div>
+        );
+    }
+
+    // Tools exist and panel is open — 50/50 split
     return (
-        <div className="flex flex-1 gap-x-4 w-full pt-24 overflow-hidden border h-full">
-            <div className="w-1/2 h-full flex border flex-col overflow-hidden">
+        <div className="flex flex-1 gap-x-4 w-full pt-24 overflow-hidden h-full">
+            <div className="w-1/2 h-full flex  flex-col overflow-hidden transition-all duration-300">
                 <ToolPanel />
             </div>
-            <div className="w-1/2 h-full flex flex-col border overflow-hidden">
+            <div className="w-1/2 h-full flex flex-col overflow-hidden transition-all duration-300">
                 <ChatHistory />
             </div>
         </div>

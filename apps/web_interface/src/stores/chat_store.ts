@@ -32,6 +32,8 @@ type CHAT_STORE_TYPES = {
     is_agent_responding: boolean;
     current_user_message: string | null;
     has_tools: boolean;
+    is_tool_panel_open: boolean;
+    responses_since_last_tool: number;
 
     // ACTIONS
     add_user_message: (text: string) => void;
@@ -42,6 +44,8 @@ type CHAT_STORE_TYPES = {
     finish_agent_response: () => void;
     clear_current_user_message: () => void;
     clear_all_messages: () => void;
+    toggle_tool_panel: () => void;
+    set_tool_panel_open: (open: boolean) => void;
 };
 
 // ----- HELPER FUNCTION -----
@@ -54,6 +58,8 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
     is_agent_responding: false,
     current_user_message: null,
     has_tools: false,
+    is_tool_panel_open: false,
+    responses_since_last_tool: 0,
 
     // ---- ACTIONS -----
     add_user_message: (text) => {
@@ -151,7 +157,7 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
 
             messages[last_index] = agent_message;
 
-            return { messages, has_tools: true };
+            return { messages, has_tools: true, is_tool_panel_open: true, responses_since_last_tool: 0 };
         });
     },
 
@@ -177,7 +183,28 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
     },
 
     finish_agent_response: () => {
-        set({ is_agent_responding: false });
+        set((state) => {
+            // Check if the last agent message had any tool calls
+            const last_agent = [...state.messages]
+                .reverse()
+                .find((m) => m.role === "agent");
+            const had_tools = last_agent?.agent_content.some(
+                (c) =>
+                    c.type === "tool_function_call" ||
+                    c.type === "tool_function_result",
+            );
+
+            const new_count = had_tools
+                ? 0
+                : state.responses_since_last_tool + 1;
+
+            return {
+                is_agent_responding: false,
+                responses_since_last_tool: new_count,
+                // Auto-close after 3 consecutive tool-free responses
+                ...(new_count >= 3 ? { is_tool_panel_open: false } : {}),
+            };
+        });
     },
 
     clear_current_user_message: () => {
@@ -190,7 +217,17 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
             is_agent_responding: false,
             current_user_message: null,
             has_tools: false,
+            is_tool_panel_open: false,
+            responses_since_last_tool: 0,
         });
+    },
+
+    toggle_tool_panel: () => {
+        set((state) => ({ is_tool_panel_open: !state.is_tool_panel_open }));
+    },
+
+    set_tool_panel_open: (open) => {
+        set({ is_tool_panel_open: open });
     },
 }));
 
