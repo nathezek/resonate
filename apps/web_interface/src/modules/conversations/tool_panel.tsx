@@ -28,7 +28,7 @@ const ToolPanel = () => {
     }
 
     return (
-        <div className="h-full overflow-y-auto space-y-4">
+        <div className="h-full overflow-y-auto space-y-2 flex flex-col items-start">
             <h3>Tool Output</h3>
             {tool_content.map((content, index) => (
                 <ToolItem key={index} content={content} />

@@ -25,7 +25,7 @@ const ChatHistory = () => {
     }
 
     return (
-        <div className="flex-1 w-full overflow-y-auto pt-12 pb-32">
+        <div className="flex-1 w-full overflow-y-auto pb-32">
             <div className="max-w-2xl mx-auto space-y-4">
                 {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} />
@@ -38,37 +38,42 @@ const ChatHistory = () => {
 
 // Individual message bubble
 const MessageBubble = ({ message }: { message: CHAT_MESSAGE }) => {
-    const isUser = message.role === "user";
+    const agent_text_content = message.agent_content.filter(
+        (item) =>
+            item.type === "chunk" ||
+            item.type === "response" ||
+            item.type === "loading" ||
+            item.type === "error",
+    );
+
+    if (agent_text_content.length === 0) {
+        return null;
+    }
 
     return (
-        <div className={`flex ${isUser ? "justify-end" : "justify-center"}`}>
-            <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    isUser
-                        ? "bg-transparent text-neutral-100"
-                        : "bg-neutral-200/5 backdrop-blur-lg text-neutral-800"
-                }`}
-            >
-                {isUser ? (
-                    <p></p>
-                ) : (
-                    // <p>{message.user_content}</p>
-                    <AgentMessageContent content={message.agent_content} />
-                )}
-            </div>
+        <div className="flex justify-center p-4 text-neutral-800">
+            <AgentMessageContent content={message.agent_content} />
         </div>
     );
 };
 
 // Render agent message content
 const AgentMessageContent = ({ content }: { content: AGENT_CONTENT[] }) => {
-    if (content.length === 0) {
+    const text_content = content.filter(
+        (item) =>
+            item.type === "chunk" ||
+            item.type === "response" ||
+            item.type === "loading" ||
+            item.type === "error",
+    );
+
+    if (text_content.length === 0) {
         return <span className="text-neutral-400">...</span>;
     }
 
     return (
         <div className="space-y-2">
-            {content.map((item, idx) => (
+            {text_content.map((item, idx) => (
                 <AgentResponseDisplay key={idx} response={item} />
             ))}
         </div>

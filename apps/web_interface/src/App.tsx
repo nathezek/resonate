@@ -7,7 +7,7 @@ import StartSessionScreen from "./modules/layouts/session_screens/start_session_
 import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dailing_screen";
 import Footer from "./modules/layouts/footer/footer";
 import { useChat, type AGENT_CONTENT } from "./stores/chat_store";
-import ChatHistory from "./modules/conversations/chat_history";
+import SplitLayout from "./modules/layouts/session_screens/learning_canvas/split_layout";
 
 function App() {
     const { session_status } = useSession();
@@ -95,7 +95,7 @@ function App() {
                 <>
                     <LearningCanvas>
                         <Navbar />
-                        <ChatHistory />
+                        <SplitLayout />
                         <Footer onSend={sendMessage} />
                     </LearningCanvas>
                 </>
