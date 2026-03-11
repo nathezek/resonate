@@ -41,17 +41,18 @@ const MessageBubble = ({ message }: { message: CHAT_MESSAGE }) => {
     const isUser = message.role === "user";
 
     return (
-        <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+        <div className={`flex ${isUser ? "justify-end" : "justify-center"}`}>
             <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                     isUser
-                        ? "bg-neutral-700 text-neutral-100"
-                        : "bg-neutral-200 text-neutral-800"
+                        ? "bg-transparent text-neutral-100"
+                        : "bg-neutral-200/5 backdrop-blur-lg text-neutral-800"
                 }`}
             >
                 {isUser ? (
-                    <p>{message.user_content}</p>
+                    <p></p>
                 ) : (
+                    // <p>{message.user_content}</p>
                     <AgentMessageContent content={message.agent_content} />
                 )}
             </div>

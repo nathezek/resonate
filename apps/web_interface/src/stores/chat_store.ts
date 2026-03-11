@@ -30,6 +30,7 @@ type CHAT_MESSAGE = {
 type CHAT_STORE_TYPES = {
     messages: CHAT_MESSAGE[];
     is_agent_responding: boolean;
+    current_user_message: string | null;
 
     // ACTIONS
     add_user_message: (text: string) => void;
@@ -38,6 +39,7 @@ type CHAT_STORE_TYPES = {
     add_agent_tool_call: (tool: string, args: any) => void;
     add_agent_tool_result: (tool: string, result: any) => void;
     finish_agent_response: () => void;
+    clear_current_user_message: () => void;
     clear_all_messages: () => void;
 };
 
@@ -49,6 +51,7 @@ const generate_id = (): string => {
 export const useChat = create<CHAT_STORE_TYPES>((set) => ({
     messages: [],
     is_agent_responding: false,
+    current_user_message: null,
 
     // ---- ACTIONS -----
     add_user_message: (text) => {
@@ -62,6 +65,7 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
 
         set((state) => ({
             messages: [...state.messages, new_user_message],
+            current_user_message: text,
         }));
     },
 
@@ -174,10 +178,15 @@ export const useChat = create<CHAT_STORE_TYPES>((set) => ({
         set({ is_agent_responding: false });
     },
 
+    clear_current_user_message: () => {
+        set({ current_user_message: null });
+    },
+
     clear_all_messages: () => {
         set({
             messages: [],
             is_agent_responding: false,
+            current_user_message: null,
         });
     },
 }));
