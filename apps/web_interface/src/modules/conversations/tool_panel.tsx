@@ -1,25 +1,54 @@
-import { useChat, type AGENT_CONTENT } from "../../stores/chat_store";
+import { useEffect, useRef } from "react";
+import {
+    useChat,
+    type AGENT_CONTENT,
+    type CHAT_MESSAGE,
+    type TOOL_CALL_MESSAGE,
+    type TOOL_RESULT_MESSAGE,
+} from "../../stores/chat_store";
 import ShikiHighlighter from "react-shiki";
 
 const ToolPanel = () => {
     const { messages } = useChat();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const prevToolCountRef = useRef<number>(0);
 
-    const tool_content: AGENT_CONTENT[] = [];
+    const message_with_tool = messages.filter((message) => {
+        if (message.role !== "agent") return false;
 
-    messages.forEach((message) => {
-        if (message.role === "agent") {
-            message.agent_content.forEach((content) => {
-                if (
-                    content.type === "tool_function_call" ||
-                    content.type === "tool_function_result"
-                ) {
-                    tool_content.push(content);
-                }
-            });
-        }
+        return message.agent_content.some(
+            (content) =>
+                content.type === "tool_function_call" ||
+                content.type === "tool_function_result",
+        );
     });
 
-    if (tool_content.length === 0) {
+    // Auto-scroll to latest tool turn when new tools arrive
+    useEffect(() => {
+        if (message_with_tool.length > prevToolCountRef.current) {
+            const latestToolMessage =
+                message_with_tool[message_with_tool.length - 1];
+
+            if (latestToolMessage) {
+                setTimeout(() => {
+                    const element = document.getElementById(
+                        `tool-turn-${latestToolMessage.id}`,
+                    );
+
+                    if (element && containerRef.current) {
+                        element.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    }
+                }, 50);
+            }
+        }
+
+        prevToolCountRef.current = message_with_tool.length;
+    }, [message_with_tool]);
+
+    if (message_with_tool.length === 0) {
         return (
             <div className="h-full flex items-center justify-center text-neutral-400">
                 <span>Tools will appear here...</span>
@@ -28,16 +57,56 @@ const ToolPanel = () => {
     }
 
     return (
-        <div className="h-full overflow-y-auto space-y-2 flex flex-col items-start">
+        <div
+            ref={containerRef}
+            className="h-full overflow-y-auto space-y-2 flex flex-col items-start"
+        >
             <h3>Tool Output</h3>
-            {tool_content.map((content, index) => (
-                <ToolItem key={index} content={content} />
+            {message_with_tool.map((message, index) => (
+                <ToolTurn
+                    key={index}
+                    message={message}
+                    turn_number={index + 1}
+                />
             ))}
         </div>
     );
 };
 
 export default ToolPanel;
+
+//  ----------------------------- Sub Components -------------------------------
+
+type TOOL_TURN_TYPES = {
+    message: CHAT_MESSAGE;
+    turn_number: number;
+};
+
+const ToolTurn = ({ message, turn_number }: TOOL_TURN_TYPES) => {
+    const tool_content = message.agent_content.filter(
+        (content): content is TOOL_CALL_MESSAGE | TOOL_RESULT_MESSAGE =>
+            content.type === "tool_function_call" ||
+            content.type === "tool_function_result",
+    );
+
+    return (
+        <div className="mb-4" id={`tool-turn-${message.id}`}>
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-10 bg-neutral-800 border-b border-neutral-700 px-3 py-2">
+                <span className="text-xs font-medium text-neutral-400">
+                    Turn {turn_number}
+                </span>
+            </div>
+
+            {/* Tool Items */}
+            <div className="space-y-2 p-2">
+                {tool_content.map((content, index) => (
+                    <ToolItem key={index} content={content} />
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const ToolItem = ({ content }: { content: AGENT_CONTENT }) => {
     if (content.type === "tool_function_call") {

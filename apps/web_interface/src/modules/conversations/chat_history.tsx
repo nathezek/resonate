@@ -8,15 +8,68 @@ import AgentResponseDisplay from "../agent/agent_response";
 
 const ChatHistory = () => {
     const { messages } = useChat();
-    const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom when messages change
+    const containerRef = useRef<HTMLDivElement>(null);
+    const prevAgentCountRef = useRef<number>(0);
+
+    const agent_messages = messages.filter(
+        (message) => message.role === "agent",
+    );
+
+    // Auto-scroll to latest agent message when new one arrives
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        console.log("📜 ChatHistory effect:", {
+            agentCount: agent_messages.length,
+            prevCount: prevAgentCountRef.current,
+        });
+
+        // Only scroll if we have NEW agent messages
+        if (agent_messages.length > prevAgentCountRef.current) {
+            const latestAgentMessage =
+                agent_messages[agent_messages.length - 1];
+
+            if (latestAgentMessage) {
+                const elementId = `chat-turn-${latestAgentMessage.id}`;
+                console.log("🔍 Looking for:", elementId);
+
+                setTimeout(() => {
+                    const element = document.getElementById(elementId);
+                    console.log("🎯 Found:", element);
+
+                    if (element) {
+                        element.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                        console.log("✅ Scrolled!");
+                    } else {
+                        console.log("❌ Not found");
+                    }
+                }, 100);
+            }
+        }
+
+        prevAgentCountRef.current = agent_messages.length;
+    }, [agent_messages]);
+
+    const turn_map = new Map<string, number>();
+    let turn_counter = 0;
+
+    agent_messages.forEach((message) => {
+        const has_tools = message.agent_content.some(
+            (content) =>
+                content.type === "tool_function_call" ||
+                content.type === "tool_function_result",
+        );
+
+        if (has_tools) {
+            turn_counter += 1;
+            turn_map.set(message.id, turn_counter);
+        }
+    });
 
     // Empty state
-    if (messages.length === 0) {
+    if (agent_messages.length === 0) {
         return (
             <div className="flex-1 flex items-center justify-center text-neutral-400">
                 <p>Start a conversation...</p>
@@ -25,19 +78,27 @@ const ChatHistory = () => {
     }
 
     return (
-        <div className="flex-1 w-full overflow-y-auto pb-32">
+        <div ref={containerRef} className="flex-1 w-full overflow-y-auto pb-32">
             <div className="max-w-2xl mx-auto space-y-4">
-                {messages.map((message) => (
-                    <MessageBubble key={message.id} message={message} />
+                {agent_messages.map((message) => (
+                    <MessageBubble
+                        key={message.id}
+                        message={message}
+                        turn_number={turn_map.get(message.id)}
+                    />
                 ))}
-                <div ref={bottomRef} />
             </div>
         </div>
     );
 };
 
 // Individual message bubble
-const MessageBubble = ({ message }: { message: CHAT_MESSAGE }) => {
+type MESSAGE_BUBBLE_TYPES = {
+    message: CHAT_MESSAGE;
+    turn_number?: number;
+};
+
+const MessageBubble = ({ message, turn_number }: MESSAGE_BUBBLE_TYPES) => {
     const agent_text_content = message.agent_content.filter(
         (item) =>
             item.type === "chunk" ||
@@ -51,8 +112,18 @@ const MessageBubble = ({ message }: { message: CHAT_MESSAGE }) => {
     }
 
     return (
-        <div className="flex justify-center p-4 text-neutral-800">
-            <AgentMessageContent content={message.agent_content} />
+        <div id={`chat-turn-${message.id}`}>
+            {turn_number && (
+                <div className="sticky top-0 z-10 bg-neutral-200 dark:bg-neutral-800 px-3 py-2">
+                    <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                        Turn {turn_number}
+                    </span>
+                </div>
+            )}
+
+            <div className="flex justify-center p-4 text-neutral-800 dark:text-neutral-200">
+                <AgentMessageContent content={message.agent_content} />
+            </div>
         </div>
     );
 };

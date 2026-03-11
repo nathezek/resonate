@@ -25,8 +25,8 @@ export const CommandNotch = () => {
 
     const { is_keyboard_enabled, toggle_keyboard } = useKeyboard();
     return (
-        <div className="w-fit h-fit flex flex-col items-center bg-neutral-200 dark:bg-neutral-800 text-neutral-700 rounded-2xl p-1.5 ">
-            <div className="flex select-none items-center justify-between gap-x-8 w-full h-fit lg:w-xl">
+        <div className="w-full h-fit flex flex-col items-center bg-neutral-200 dark:bg-neutral-800 md:w-2xl text-neutral-700 rounded-2xl p-1.5 ">
+            <div className="flex select-none items-center justify-between gap-x-8 w-full h-fit">
                 {/*----- Left ----*/}
                 <div className="flex h-full items-center gap-x-1">
                     <button onClick={toggle_session_pause}>

@@ -40,6 +40,8 @@ function App() {
 
             socket.onmessage = (event) => {
                 const incoming: AGENT_CONTENT = JSON.parse(event.data);
+                // TODO: Remove the log, this was went to debugging purposes only
+                console.log("📩 Incoming WS message:", incoming);
 
                 if (incoming.type === "chunk") {
                     append_agent_chunk(incoming.data);
