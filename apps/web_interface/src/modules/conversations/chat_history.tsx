@@ -16,41 +16,35 @@ const ChatHistory = () => {
         (message) => message.role === "agent",
     );
 
-    // Auto-scroll to latest agent message when new one arrives
+    const agentCount = agent_messages.length;
+    const latestAgentId = agent_messages[agent_messages.length - 1]?.id;
+
+    // Auto-scroll to latest agent message when a new one arrives
     useEffect(() => {
-        console.log("📜 ChatHistory effect:", {
-            agentCount: agent_messages.length,
-            prevCount: prevAgentCountRef.current,
-        });
+        if (agentCount > prevAgentCountRef.current && latestAgentId) {
+            requestAnimationFrame(() => {
+                const element = document.getElementById(
+                    `chat-turn-${latestAgentId}`,
+                );
 
-        // Only scroll if we have NEW agent messages
-        if (agent_messages.length > prevAgentCountRef.current) {
-            const latestAgentMessage =
-                agent_messages[agent_messages.length - 1];
+                if (element && containerRef.current) {
+                    const elementRect = element.getBoundingClientRect();
+                    const containerRect =
+                        containerRef.current.getBoundingClientRect();
+                    const scrollOffset =
+                        containerRef.current.scrollTop +
+                        (elementRect.top - containerRect.top);
 
-            if (latestAgentMessage) {
-                const elementId = `chat-turn-${latestAgentMessage.id}`;
-                console.log("🔍 Looking for:", elementId);
-
-                setTimeout(() => {
-                    const element = document.getElementById(elementId);
-                    console.log("🎯 Found:", element);
-
-                    if (element) {
-                        element.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                        });
-                        console.log("✅ Scrolled!");
-                    } else {
-                        console.log("❌ Not found");
-                    }
-                }, 100);
-            }
+                    containerRef.current.scrollTo({
+                        top: scrollOffset,
+                        behavior: "smooth",
+                    });
+                }
+            });
         }
 
-        prevAgentCountRef.current = agent_messages.length;
-    }, [agent_messages]);
+        prevAgentCountRef.current = agentCount;
+    }, [agentCount, latestAgentId]);
 
     const turn_map = new Map<string, number>();
     let turn_counter = 0;
@@ -78,7 +72,7 @@ const ChatHistory = () => {
     }
 
     return (
-        <div ref={containerRef} className="flex-1 w-full overflow-y-auto pb-32">
+        <div ref={containerRef} className="flex-1 w-full overflow-y-auto pb-[100vh]">
             <div className="max-w-2xl mx-auto space-y-4">
                 {agent_messages.map((message) => (
                     <MessageBubble

@@ -7,8 +7,6 @@ import { useChat } from "../../../../stores/chat_store";
 const SplitLayout = () => {
     const { has_tools } = useChat();
 
-    console.log("🔧 has_tools:", has_tools);
-
     if (!has_tools) {
         return <ChatHistory />;
     }

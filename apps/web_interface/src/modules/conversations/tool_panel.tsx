@@ -23,30 +23,36 @@ const ToolPanel = () => {
         );
     });
 
+    const toolCount = message_with_tool.length;
+    const latestToolId =
+        message_with_tool[message_with_tool.length - 1]?.id;
+
     // Auto-scroll to latest tool turn when new tools arrive
     useEffect(() => {
-        if (message_with_tool.length > prevToolCountRef.current) {
-            const latestToolMessage =
-                message_with_tool[message_with_tool.length - 1];
+        if (toolCount > prevToolCountRef.current && latestToolId) {
+            requestAnimationFrame(() => {
+                const element = document.getElementById(
+                    `tool-turn-${latestToolId}`,
+                );
 
-            if (latestToolMessage) {
-                setTimeout(() => {
-                    const element = document.getElementById(
-                        `tool-turn-${latestToolMessage.id}`,
-                    );
+                if (element && containerRef.current) {
+                    const elementRect = element.getBoundingClientRect();
+                    const containerRect =
+                        containerRef.current.getBoundingClientRect();
+                    const scrollOffset =
+                        containerRef.current.scrollTop +
+                        (elementRect.top - containerRect.top);
 
-                    if (element && containerRef.current) {
-                        element.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                        });
-                    }
-                }, 50);
-            }
+                    containerRef.current.scrollTo({
+                        top: scrollOffset,
+                        behavior: "smooth",
+                    });
+                }
+            });
         }
 
-        prevToolCountRef.current = message_with_tool.length;
-    }, [message_with_tool]);
+        prevToolCountRef.current = toolCount;
+    }, [toolCount, latestToolId]);
 
     if (message_with_tool.length === 0) {
         return (
@@ -59,7 +65,7 @@ const ToolPanel = () => {
     return (
         <div
             ref={containerRef}
-            className="h-full overflow-y-auto space-y-2 flex flex-col items-start"
+            className="h-full overflow-y-auto space-y-2 flex flex-col items-start pb-[100vh]"
         >
             <h3>Tool Output</h3>
             {message_with_tool.map((message, index) => (
