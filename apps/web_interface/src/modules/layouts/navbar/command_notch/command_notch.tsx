@@ -74,9 +74,7 @@ export const CommandNotch = () => {
                 </div>
             </div>
 
-            <div className="h-fit w-full p-1">
-                <CurrentUserMessageDisplayer />
-            </div>
+            <CurrentUserMessageDisplayer />
         </div>
     );
 };
