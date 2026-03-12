@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 
 type SpeechRecognitionHookProps = {
     onInterim?: (text: string) => void;
@@ -34,6 +34,20 @@ export function useSpeechRecognition({
 
     // 2. Initialize with 0 to remain idempotent during render
     const lastSoundTimeRef = useRef<number>(0);
+
+    const onInterimRef = useRef(onInterim);
+    const onFinalRef = useRef(onFinal);
+    const onSilenceStartRef = useRef(onSilenceStart);
+    const onErrorRef = useRef(onError);
+    const onEndRef = useRef(onEnd);
+
+    useEffect(() => {
+        onInterimRef.current = onInterim;
+        onFinalRef.current = onFinal;
+        onSilenceStartRef.current = onSilenceStart;
+        onErrorRef.current = onError;
+        onEndRef.current = onEnd;
+    });
 
     // Use useCallback for start/stop so they are stable references
     const start = useCallback(() => {
@@ -75,9 +89,9 @@ export function useSpeechRecognition({
             const isFinal = event.results[event.results.length - 1].isFinal;
 
             if (isFinal) {
-                onFinal?.(transcript);
+                onFinalRef.current?.(transcript);
             } else {
-                onInterim?.(transcript);
+                onInterimRef.current?.(transcript);
             }
 
             lastSoundTimeRef.current = Date.now();
@@ -86,37 +100,29 @@ export function useSpeechRecognition({
         recognition.onaudioend = () => {
             const timeSinceLastSound = Date.now() - lastSoundTimeRef.current;
             if (timeSinceLastSound > 800) {
-                onSilenceStart?.();
+                onSilenceStartRef.current?.();
             }
         };
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             // Note: 'no-speech' is a common error that doesn't necessarily mean failure
             setError(event.error);
-            onError?.(event.error);
+            onErrorRef.current?.(event.error);
             setIsListening(false);
         };
 
         recognition.onend = () => {
             setIsListening(false);
-            onEnd?.();
+            onEndRef.current?.();
         };
 
         return () => {
             recognition.stop();
             recognitionRef.current = null;
         };
-    }, [
-        language,
-        onInterim,
-        onFinal,
-        onSilenceStart,
-        onError,
-        onEnd,
-        SpeechRecognitionConstructor,
-    ]);
+    }, [language, SpeechRecognitionConstructor]);
 
-    return {
+    return useMemo(() => ({
         isSupported,
         isListening,
         error,
@@ -124,5 +130,5 @@ export function useSpeechRecognition({
         stop,
         pause: stop,
         resume: start,
-    };
+    }), [isSupported, isListening, error, start, stop]);
 }
