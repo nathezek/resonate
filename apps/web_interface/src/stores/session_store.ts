@@ -10,6 +10,7 @@ type SESSION_STATE_TYPES = {
     is_mic_muted: boolean;
     is_session_paused: boolean;
     is_voice_mode_enabled: boolean;
+    was_muted_before_pause: boolean;
 
     // Actions
     start_dailing: () => void;
@@ -18,6 +19,7 @@ type SESSION_STATE_TYPES = {
     toggle_mute: () => void;
     toggle_session_pause: () => void;
     set_voice_mode: (enabled: boolean) => void;
+    toggle_voice_mode: () => void;
 };
 
 export const useSession = create<SESSION_STATE_TYPES>((set, get) => ({
@@ -26,6 +28,7 @@ export const useSession = create<SESSION_STATE_TYPES>((set, get) => ({
     is_mic_muted: false,
     is_session_paused: false,
     is_voice_mode_enabled: true,
+    was_muted_before_pause: false,
 
     // ----- Actions ------
 
@@ -33,51 +36,82 @@ export const useSession = create<SESSION_STATE_TYPES>((set, get) => ({
 
     start_session: async () => {
         const timer = useSessionTimer.getState();
+        const keyboard = useKeyboard.getState();
+        const audio = useAudio.getState();
 
         timer.reset_timer();
         timer.start_timer();
-        set({ session_status: "active", is_voice_mode_enabled: true });
+        
+        keyboard.disable_keyboard();
+        audio.startListening();
 
-        if (get().is_voice_mode_enabled) {
-            useAudio.getState().startListening();
-        }
+        set({ 
+            session_status: "active", 
+            is_voice_mode_enabled: true,
+            is_session_paused: false,
+            was_muted_before_pause: false
+        });
     },
 
     end_session: () => {
         useChat.getState().clear_all_messages();
         const keyboard = useKeyboard.getState();
+        const audio = useAudio.getState();
+        const timer = useSessionTimer.getState();
 
+        audio.resetAll();
         keyboard.disable_keyboard();
-        useAudio.getState().resetAll();
+        timer.stop_timer();
+        timer.reset_timer();
         
         set({
             session_status: "idle",
             is_mic_muted: false,
             is_session_paused: false,
             is_voice_mode_enabled: true,
+            was_muted_before_pause: false,
         });
     },
 
     toggle_session_pause: () => {
-        const keyboard = useKeyboard.getState();
+        const audio = useAudio.getState();
         const timer = useSessionTimer.getState();
-        const { is_session_paused } = get();
+        const { is_session_paused, is_voice_mode_enabled } = get();
 
         if (!is_session_paused) {
-            set({ is_session_paused: true });
-            keyboard.disable_keyboard();
+            // --- ACTION: PAUSING ---
+            const current_mic_muted = !is_voice_mode_enabled;
+            set({ was_muted_before_pause: current_mic_muted, is_session_paused: true });
+            audio.stopListening();
             timer.stop_timer();
-            // On pause, reset audio per requirements
-            useAudio.getState().resetAll();
         } else {
-            keyboard.enable_keyboard();
+            // --- ACTION: RESUMING ---
+            const keyboard = useKeyboard.getState();
+            const was_muted = get().was_muted_before_pause;
+
+            if (!was_muted && !keyboard.is_keyboard_enabled) {
+                audio.startListening();
+                set({ is_voice_mode_enabled: true }); // Sync UI
+            }
             timer.start_timer();
             set({ is_session_paused: false });
-            // If we are in voice mode, we should probably start listening again
-            if (get().is_voice_mode_enabled) {
-                useAudio.getState().startListening();
-            }
         }
+    },
+
+    toggle_voice_mode: () => {
+        const audio = useAudio.getState();
+        const keyboard = useKeyboard.getState();
+        const next_state = !get().is_voice_mode_enabled;
+
+        if (next_state) {
+            // Turning ON
+            keyboard.disable_keyboard();
+            audio.startListening();
+        } else {
+            // Turning OFF
+            audio.stopListening();
+        }
+        set({ is_voice_mode_enabled: next_state });
     },
 
     toggle_mute: () => set((state) => ({ is_mic_muted: !state.is_mic_muted })),

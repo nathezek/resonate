@@ -1,8 +1,9 @@
 import { useChat } from "../../../../../stores/chat_store";
 import { useAudio } from "../../../../../stores/audio_store";
+import { useKeyboard } from "../../../../../stores/keyboard_store";
 
 const CurrentUserMessageDisplayer = () => {
-    const { current_user_message } = useChat();
+    const { current_user_message, messages } = useChat();
     const {
         isListening,
         liveTranscript,
@@ -11,21 +12,29 @@ const CurrentUserMessageDisplayer = () => {
         countdownRemainingMs,
         idleMessageShown,
     } = useAudio();
+    const { is_keyboard_enabled } = useKeyboard();
 
-    // Determine the display priority
-    let displayText = current_user_message || liveTranscript;
+    let displayText = current_user_message;
 
-    if (isListening && !hasSpokenOnce && !liveTranscript) {
-        displayText = "Listening… start speaking";
-    }
+    if (is_keyboard_enabled) {
+        if (!current_user_message && messages.length === 0) {
+            displayText = "Start typing.... your messages will appear here.";
+        }
+    } else {
+        displayText = current_user_message || liveTranscript;
 
-    if (idleMessageShown) {
-        displayText =
-            "No speech detected — tap the mic to retry or switch to keyboard";
-    }
+        if (isListening && !hasSpokenOnce && !liveTranscript) {
+            displayText = "Listening… start speaking";
+        }
 
-    if (isCountdownActive) {
-        displayText = `Sending in ${Math.ceil(countdownRemainingMs / 1000)}s…`;
+        if (idleMessageShown) {
+            displayText =
+                "No speech detected — tap the mic to retry or switch to keyboard";
+        }
+
+        if (isCountdownActive) {
+            displayText = `Sending in ${Math.ceil(countdownRemainingMs / 1000)}s…`;
+        }
     }
 
     if (!displayText) return null;
