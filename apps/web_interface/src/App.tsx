@@ -8,8 +8,10 @@ import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dail
 import Footer from "./modules/layouts/footer/footer";
 import { useChat, type AGENT_CONTENT } from "./stores/chat_store";
 import SplitLayout from "./modules/layouts/session_screens/learning_canvas/split_layout";
+import { useVoiceController } from "./lib/use_voice_controller";
 
 function App() {
+    useVoiceController();
     const { session_status } = useSession();
 
     const {
