@@ -27,7 +27,11 @@ type AudioState = {
     isIdleTimeoutActive: boolean;
     idleMessageShown: boolean;
 
+    // Global WebSocket sender function provided by App.tsx
+    _sendMessageHandler: ((text: string) => void) | null;
+
     // Actions
+    setSendMessageHandler: (handler: (text: string) => void) => void;
     startListening: () => void;
     pauseListening: () => void;
     resumeListening: () => void;
@@ -51,6 +55,12 @@ export const useAudio = create<AudioState>((set, get) => {
         const { add_user_message, start_agent_response } = useChat.getState();
         add_user_message(text);
         start_agent_response();
+        
+        // Actually send it to websocket
+        const handler = get()._sendMessageHandler;
+        if (handler) {
+            handler(text);
+        }
 
         // Clear transcript after send
         set({
@@ -71,12 +81,15 @@ export const useAudio = create<AudioState>((set, get) => {
         error: null,
         permissionStatus: "unknown",
         _speechInstance: null,
+        _sendMessageHandler: null,
 
         isCountdownActive: false,
         countdownRemainingMs: SILENCE_COUNTDOWN_MS,
 
         isIdleTimeoutActive: false,
         idleMessageShown: false,
+
+        setSendMessageHandler: (handler) => set({ _sendMessageHandler: handler }),
 
         startListening: () => {
             const speech = get()._speechInstance;
@@ -93,7 +106,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     isListening: true,
                     error: null,
                     permissionStatus: "granted",
-                    liveTranscript: "Listening… start speaking",
+                    liveTranscript: "",
                     interimTranscript: "",
                 });
 
@@ -105,8 +118,6 @@ export const useAudio = create<AudioState>((set, get) => {
                             isIdleTimeoutActive: false,
                             idleMessageShown: true,
                             isListening: false,
-                            liveTranscript:
-                                "No speech detected — tap mic to retry or switch to keyboard",
                         });
                         speech.stop();
                     }, INITIAL_IDLE_TIMEOUT_MS);
@@ -170,12 +181,15 @@ export const useAudio = create<AudioState>((set, get) => {
         },
 
         handleInterim: (text: string) => {
+            if (!text.trim()) return;
             set({ interimTranscript: text, liveTranscript: text });
             // Reset countdown if active
             get().cancelCountdown();
         },
 
         handleFinal: (text: string) => {
+            if (!text.trim()) return;
+            
             set({
                 liveTranscript: text,
                 interimTranscript: "",
@@ -199,7 +213,6 @@ export const useAudio = create<AudioState>((set, get) => {
             set({
                 isCountdownActive: true,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
-                liveTranscript: "Sending in 3s...",
             });
 
             countdownInterval = setInterval(() => {
@@ -212,12 +225,10 @@ export const useAudio = create<AudioState>((set, get) => {
                         return {
                             isCountdownActive: false,
                             countdownRemainingMs: 0,
-                            liveTranscript: "",
                         };
                     }
                     return {
                         countdownRemainingMs: newMs,
-                        liveTranscript: `Sending in ${Math.ceil(newMs / 1000)}s...`,
                     };
                 });
             }, COUNTDOWN_TICK_MS);
@@ -228,9 +239,6 @@ export const useAudio = create<AudioState>((set, get) => {
             set({
                 isCountdownActive: false,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
-                liveTranscript: get().hasSpokenOnce
-                    ? "Listening…"
-                    : "Listening… start speaking",
             });
         },
 

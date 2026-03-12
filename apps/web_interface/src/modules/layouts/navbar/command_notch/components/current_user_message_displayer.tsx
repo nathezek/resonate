@@ -33,7 +33,11 @@ const CurrentUserMessageDisplayer = () => {
         }
 
         if (isCountdownActive) {
-            displayText = `Sending in ${Math.ceil(countdownRemainingMs / 1000)}s…`;
+            if (liveTranscript) {
+                displayText = `${liveTranscript} (Sending in ${Math.ceil(countdownRemainingMs / 1000)}s…)`;
+            } else {
+                displayText = `Sending in ${Math.ceil(countdownRemainingMs / 1000)}s…`;
+            }
         }
     }
 
