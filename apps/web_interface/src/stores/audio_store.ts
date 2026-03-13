@@ -11,7 +11,6 @@ type AudioState = {
     liveTranscript: string;
     interimTranscript: string;
     hasSpokenOnce: boolean;
-    hasSentMessageThisTurn: boolean;
     isListening: boolean;
     isPausedByAgent: boolean;
     error: string | null;
@@ -67,7 +66,6 @@ export const useAudio = create<AudioState>((set, get) => {
         set({
             liveTranscript: "",
             interimTranscript: "",
-            hasSentMessageThisTurn: true,
         });
 
         // Pause listening while agent responds (also handled by subscribe, but safe)
@@ -78,7 +76,6 @@ export const useAudio = create<AudioState>((set, get) => {
         liveTranscript: "",
         interimTranscript: "",
         hasSpokenOnce: false,
-        hasSentMessageThisTurn: false,
         isListening: false,
         isPausedByAgent: false,
         error: null,
@@ -112,7 +109,6 @@ export const useAudio = create<AudioState>((set, get) => {
                     liveTranscript: "",
                     interimTranscript: "",
                     hasSpokenOnce: false,
-                    hasSentMessageThisTurn: false,
                     isCountdownActive: false,
                 });
 
@@ -169,7 +165,6 @@ export const useAudio = create<AudioState>((set, get) => {
                 set({ 
                     isPausedByAgent: false,
                     hasSpokenOnce: false,
-                    hasSentMessageThisTurn: false,
                     isCountdownActive: false,
                     liveTranscript: "",
                     interimTranscript: "",
@@ -217,7 +212,6 @@ export const useAudio = create<AudioState>((set, get) => {
                 liveTranscript: "",
                 interimTranscript: "",
                 hasSpokenOnce: false,
-                hasSentMessageThisTurn: false,
                 isCountdownActive: false,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
                 isIdleTimeoutActive: false,
@@ -238,7 +232,6 @@ export const useAudio = create<AudioState>((set, get) => {
                 interimTranscript: text, 
                 liveTranscript: text,
                 hasSpokenOnce: true,
-                hasSentMessageThisTurn: false,
                 isIdleTimeoutActive: false,
                 idleMessageShown: false
             });

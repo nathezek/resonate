@@ -12,7 +12,6 @@ const CurrentUserMessageDisplayer = () => {
         isCountdownActive,
         countdownRemainingMs,
         idleMessageShown,
-        hasSentMessageThisTurn,
     } = useAudio();
     const { is_keyboard_enabled } = useKeyboard();
     
@@ -53,7 +52,7 @@ const CurrentUserMessageDisplayer = () => {
                     <div className="flex-1 w-full max-w-[calc(100%-2rem)]">
                         <span 
                             ref={scrollRef}
-                            className={`block w-full wrap-break-word leading-relaxed pt-0.5 whitespace-pre-wrap transcript-box ${hasSentMessageThisTurn || (!isListening && !liveTranscript) ? 'transcript-box-collapsed' : ''}`}
+                            className={`block w-full wrap-break-word leading-relaxed pt-0.5 whitespace-pre-wrap transcript-box ${!liveTranscript ? 'transcript-box-collapsed' : ''}`}
                         >
                             {displayText}
                         </span>
