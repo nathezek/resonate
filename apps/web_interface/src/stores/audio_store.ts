@@ -122,6 +122,7 @@ export const useAudio = create<AudioState>((set, get) => {
                             isListening: false,
                         });
                         speech.stop();
+                        useSession.getState().set_voice_mode(false); // Visually update UI mic icon to OFF
                     }, INITIAL_IDLE_TIMEOUT_MS);
                 }
             } catch (err: any) {
