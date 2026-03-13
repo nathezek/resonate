@@ -11,6 +11,7 @@ type AudioState = {
     liveTranscript: string;
     interimTranscript: string;
     hasSpokenOnce: boolean;
+    hasSentMessageThisTurn: boolean;
     isListening: boolean;
     isPausedByAgent: boolean;
     error: string | null;
@@ -66,6 +67,7 @@ export const useAudio = create<AudioState>((set, get) => {
         set({
             liveTranscript: "",
             interimTranscript: "",
+            hasSentMessageThisTurn: true,
         });
 
         // Pause listening while agent responds (also handled by subscribe, but safe)
@@ -76,6 +78,7 @@ export const useAudio = create<AudioState>((set, get) => {
         liveTranscript: "",
         interimTranscript: "",
         hasSpokenOnce: false,
+        hasSentMessageThisTurn: false,
         isListening: false,
         isPausedByAgent: false,
         error: null,
@@ -109,6 +112,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     liveTranscript: "",
                     interimTranscript: "",
                     hasSpokenOnce: false,
+                    hasSentMessageThisTurn: false,
                     isCountdownActive: false,
                 });
 
@@ -165,10 +169,26 @@ export const useAudio = create<AudioState>((set, get) => {
                 set({ 
                     isPausedByAgent: false,
                     hasSpokenOnce: false,
+                    hasSentMessageThisTurn: false,
                     isCountdownActive: false,
                     liveTranscript: "",
                     interimTranscript: "",
                 });
+                
+                // Agents respond contextually; we treat this as a fresh start for UI timing
+                set({ isIdleTimeoutActive: true, idleMessageShown: false });
+                if (idleTimeoutId) clearTimeout(idleTimeoutId);
+                idleTimeoutId = setTimeout(() => {
+                    set({
+                        isIdleTimeoutActive: false,
+                        idleMessageShown: true,
+                        isListening: false,
+                    });
+                    const speechInstance = get()._speechInstance;
+                    if (speechInstance) speechInstance.stop();
+                    useSession.getState().set_voice_mode(false);
+                }, INITIAL_IDLE_TIMEOUT_MS);
+                
                 if (speech) speech.resume();
             }
         },
@@ -197,6 +217,7 @@ export const useAudio = create<AudioState>((set, get) => {
                 liveTranscript: "",
                 interimTranscript: "",
                 hasSpokenOnce: false,
+                hasSentMessageThisTurn: false,
                 isCountdownActive: false,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
                 isIdleTimeoutActive: false,
@@ -217,6 +238,7 @@ export const useAudio = create<AudioState>((set, get) => {
                 interimTranscript: text, 
                 liveTranscript: text,
                 hasSpokenOnce: true,
+                hasSentMessageThisTurn: false,
                 isIdleTimeoutActive: false,
                 idleMessageShown: false
             });
