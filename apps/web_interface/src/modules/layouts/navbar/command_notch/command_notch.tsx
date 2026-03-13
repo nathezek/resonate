@@ -12,6 +12,7 @@ import { useSession } from "../../../../stores/session_store";
 import Timer from "./components/timer";
 import { useKeyboard } from "../../../../stores/keyboard_store";
 import CurrentUserMessageDisplayer from "./components/current_user_message_displayer";
+import { useChat } from "../../../../stores/chat_store";
 
 export const CommandNotch = () => {
     const {
@@ -24,6 +25,7 @@ export const CommandNotch = () => {
     } = useSession();
 
     const { is_keyboard_enabled, toggle_keyboard } = useKeyboard();
+    const { is_agent_responding } = useChat();
     return (
         <div className="w-full h-fit flex flex-col items-center bg-neutral-200 dark:bg-neutral-800 md:w-xl text-neutral-700 rounded-2xl">
             <div className="flex select-none items-center justify-between gap-x-8 w-full h-11 px-1">
@@ -37,7 +39,7 @@ export const CommandNotch = () => {
                         )}
                     </button>
                     <span className="opacity-40">|</span>
-                    <button 
+                    <button
                         onClick={toggle_keyboard}
                         disabled={is_session_paused}
                         className={is_session_paused ? "opacity-50 cursor-not-allowed" : ""}
@@ -49,15 +51,19 @@ export const CommandNotch = () => {
                         )}
                     </button>
                     <span className="opacity-40">|</span>
-                    <button 
+                    <button
                         onClick={toggle_voice_mode}
-                        disabled={is_session_paused}
-                        className={is_session_paused ? "opacity-50 cursor-not-allowed" : ""}
+                        disabled={is_session_paused || is_agent_responding}
+                        className={
+                            (is_session_paused || is_agent_responding)
+                                ? "cursor-not-allowed"
+                                : ""
+                        }
                     >
-                        {is_voice_mode_enabled ? (
-                            <IconMicrophone size={18} className="text-blue-500" />
+                        {!is_voice_mode_enabled || is_agent_responding || is_session_paused ? (
+                            <IconMicrophoneOff size={18} className={`${is_session_paused ? "opacity-50" : ""}`} />
                         ) : (
-                            <IconMicrophoneOff size={18} />
+                            <IconMicrophone size={18} className="text-blue-500" />
                         )}
                     </button>
                 </div>
@@ -66,7 +72,7 @@ export const CommandNotch = () => {
                 <MicVisualizer
                     isActive={
                         (session_status === "active" && is_voice_mode_enabled) &&
-                        !is_session_paused
+                        !is_session_paused && !is_agent_responding
                     }
                 />
 

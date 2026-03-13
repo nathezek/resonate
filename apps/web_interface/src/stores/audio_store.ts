@@ -3,7 +3,7 @@ import { useChat } from "./chat_store";
 import { useSession } from "./session_store";
 
 const INITIAL_IDLE_TIMEOUT_MS = 60_000; // 60 seconds
-const SILENCE_COUNTDOWN_MS = 3000; // 3 seconds
+const SILENCE_COUNTDOWN_MS = 5000; // 5 seconds
 const COUNTDOWN_TICK_MS = 1000; // update every second
 
 type AudioState = {
@@ -108,6 +108,8 @@ export const useAudio = create<AudioState>((set, get) => {
                     permissionStatus: "granted",
                     liveTranscript: "",
                     interimTranscript: "",
+                    hasSpokenOnce: false,
+                    isCountdownActive: false,
                 });
 
                 // Start initial idle timeout if not spoken yet
@@ -139,9 +141,14 @@ export const useAudio = create<AudioState>((set, get) => {
             const speech = get()._speechInstance;
             if (speech) speech.pause();
 
-            set({ isPausedByAgent: true });
+            set({ 
+                isPausedByAgent: true,
+                isCountdownActive: false,
+                hasSpokenOnce: false,
+                liveTranscript: "",
+                interimTranscript: "",
+            });
             if (countdownInterval) clearInterval(countdownInterval);
-            set({ isCountdownActive: false });
         },
 
         resumeListening: () => {
@@ -150,8 +157,14 @@ export const useAudio = create<AudioState>((set, get) => {
                 get().isPausedByAgent &&
                 useSession.getState().session_status === "active"
             ) {
+                set({ 
+                    isPausedByAgent: false,
+                    hasSpokenOnce: false,
+                    isCountdownActive: false,
+                    liveTranscript: "",
+                    interimTranscript: "",
+                });
                 if (speech) speech.resume();
-                set({ isPausedByAgent: false });
             }
         },
 

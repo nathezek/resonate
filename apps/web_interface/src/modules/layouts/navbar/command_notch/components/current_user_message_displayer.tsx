@@ -47,7 +47,7 @@ const CurrentUserMessageDisplayer = () => {
         <div className="w-full h-fit p-1">
             <div className="w-full flex overflow-hidden items-center h-fit px-4 py-2 gap-x-4 rounded-xl bg-neutral-800/90 text-neutral-200 text-sm">
                 <img src="/default_avatar.png" className="w-3 h-3" alt="user" />{" "}
-                :<span className="line-clamp-1">{displayText}</span>
+                :<span className="line-clamp-3">{displayText}</span>
             </div>
         </div>
     );

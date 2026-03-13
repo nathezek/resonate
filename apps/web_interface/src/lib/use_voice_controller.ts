@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSpeechRecognition } from "./use_speech_recognition";
 import { useChat } from "../stores/chat_store";
 import { useAudio } from "../stores/audio_store";
+import { useSession } from "../stores/session_store";
 
 export const useVoiceController = () => {
     // 1. Subscribe to chat store to pause/resume listening when agent responds
@@ -34,7 +35,13 @@ export const useVoiceController = () => {
         },
         onError: (err) => useAudio.setState({ error: err }),
         onEnd: () => {
-            // Auto-reconnect handled in use_speech_recognition hook
+            const audioState = useAudio.getState();
+            const { session_status, is_voice_mode_enabled } = useSession.getState(); 
+            
+            // Auto-reconnect if the session is alive and the agent didn't pause us
+            if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent) {
+                audioState.startListening();
+            }
         },
     });
 
