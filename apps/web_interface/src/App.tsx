@@ -7,9 +7,12 @@ import StartSessionScreen from "./modules/layouts/session_screens/start_session_
 import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dailing_screen";
 import Footer from "./modules/layouts/footer/footer";
 import { useChat, type AGENT_CONTENT } from "./stores/chat_store";
-import ChatHistory from "./modules/conversations/chat_history";
+import SplitLayout from "./modules/layouts/session_screens/learning_canvas/split_layout";
+import { useVoiceController } from "./lib/use_voice_controller";
+import { useAudio } from "./stores/audio_store";
 
 function App() {
+    useVoiceController();
     const { session_status } = useSession();
 
     const {
@@ -40,6 +43,8 @@ function App() {
 
             socket.onmessage = (event) => {
                 const incoming: AGENT_CONTENT = JSON.parse(event.data);
+                // TODO: Remove the log, this was went to debugging purposes only
+                console.log("📩 Incoming WS message:", incoming);
 
                 if (incoming.type === "chunk") {
                     append_agent_chunk(incoming.data);
@@ -87,6 +92,10 @@ function App() {
         }
     };
 
+    useEffect(() => {
+        useAudio.getState().setSendMessageHandler(sendMessage);
+    }, []);
+
     return (
         <ThemesProvider>
             {session_status === "idle" && <StartSessionScreen />}
@@ -95,7 +104,7 @@ function App() {
                 <>
                     <LearningCanvas>
                         <Navbar />
-                        <ChatHistory />
+                        <SplitLayout />
                         <Footer onSend={sendMessage} />
                     </LearningCanvas>
                 </>

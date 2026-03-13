@@ -24,7 +24,7 @@ const InputArea = ({ onSend }: INPUT_AREA_TYPES) => {
         SetInput("");
     };
     return (
-        <div className="flex items-center gap-x-2 bg-neutral-200/95 backdrop-blur-xs w-full lg:w-xl text-neutral-700 rounded-2xl p-1.5 pl-3 h-13">
+        <div className="flex items-center gap-x-2 bg-neutral-200/95 backdrop-blur-2xl w-full lg:w-xl text-neutral-700 rounded-2xl p-1 pl-3 h-12">
             <Input
                 type="text"
                 value={input}

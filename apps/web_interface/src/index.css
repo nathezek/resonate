@@ -11,6 +11,10 @@
 	src: url("/fonts/IBMPlexSans-VariableFont.ttf");
 }
 
+::-webkit-scrollbar{
+    width: 0;
+}
+
 :root {
   font-family: "Source_Serif", monospace;
   line-height: 1.5;
@@ -50,15 +54,15 @@ button{
 }
 
 .learning_canvas {
-    min-height: 100vh;
+    height: 100vh;
     width: 100%;
 
     /* Grid background */
     background-color: var(--background);
     background-image:
-        linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-    background-size: 20px 20px; /* Grid cell size */
+        linear-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+    background-size: 16px 16px; /* Grid cell size */
 
     /* Padding for content */
     padding: 2rem;
@@ -67,4 +71,20 @@ button{
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+/* Custom Transcript Expansion Classes */
+.transcript-box {
+    max-height: 4.5rem; /* Expands up to 3 lines of text at standard line-height */
+    overflow-y: auto;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.transcript-box-collapsed {
+    max-height: 1.5rem !important; /* Force 1 line limit when not actively listening */
+    overflow-y: hidden !important;
+}
+
+.group:hover .transcript-box {
+    max-height: 16rem !important; /* Expands to show multiple lines */
 }
