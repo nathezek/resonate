@@ -1,6 +1,7 @@
 import { IconBoxAlignTopRightFilled } from "@tabler/icons-react";
 import { useChat } from "../../../stores/chat_store";
 import { useKeyboard } from "../../../stores/keyboard_store";
+import { useSession } from "../../../stores/session_store";
 import InputArea from "./input_area/input_area";
 
 type FOOTER_TYPES = {
@@ -9,6 +10,7 @@ type FOOTER_TYPES = {
 
 const Footer = ({ onSend }: FOOTER_TYPES) => {
     const { is_keyboard_enabled } = useKeyboard();
+    const { is_session_paused } = useSession();
     const { is_tool_panel_open, toggle_tool_panel, messages } = useChat();
 
     const message_with_tool = messages.filter((message) => {
@@ -35,7 +37,7 @@ const Footer = ({ onSend }: FOOTER_TYPES) => {
             ) : (
                 <div className="w-14" />
             )}
-            {is_keyboard_enabled && <InputArea onSend={onSend} />}
+            {is_keyboard_enabled && !is_session_paused && <InputArea onSend={onSend} />}
 
             <div className="w-14" />
         </div>

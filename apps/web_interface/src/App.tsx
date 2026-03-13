@@ -8,8 +8,11 @@ import DailingScreen from "./modules/layouts/session_screens/dailing_screen/dail
 import Footer from "./modules/layouts/footer/footer";
 import { useChat, type AGENT_CONTENT } from "./stores/chat_store";
 import SplitLayout from "./modules/layouts/session_screens/learning_canvas/split_layout";
+import { useVoiceController } from "./lib/use_voice_controller";
+import { useAudio } from "./stores/audio_store";
 
 function App() {
+    useVoiceController();
     const { session_status } = useSession();
 
     const {
@@ -88,6 +91,10 @@ function App() {
             console.warn("⚠️ Cannot send message: WebSocket is not open yet.");
         }
     };
+
+    useEffect(() => {
+        useAudio.getState().setSendMessageHandler(sendMessage);
+    }, []);
 
     return (
         <ThemesProvider>
