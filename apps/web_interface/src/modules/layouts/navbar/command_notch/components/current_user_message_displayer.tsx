@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useChat } from "../../../../../stores/chat_store";
 import { useAudio } from "../../../../../stores/audio_store";
 import { useKeyboard } from "../../../../../stores/keyboard_store";
@@ -13,6 +14,8 @@ const CurrentUserMessageDisplayer = () => {
         idleMessageShown,
     } = useAudio();
     const { is_keyboard_enabled } = useKeyboard();
+    
+    const scrollRef = useRef<HTMLSpanElement>(null);
 
     let displayText = current_user_message;
     let auxiliaryStatusText = "";
@@ -35,13 +38,22 @@ const CurrentUserMessageDisplayer = () => {
 
     if (!displayText && !auxiliaryStatusText) return null;
 
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [displayText]);
+
     return (
         <div className="w-full h-fit p-1 flex flex-col gap-1 group relative">
             {displayText && (
                 <div className="w-full flex transition-all duration-300 overflow-hidden items-start h-fit px-4 py-2 gap-x-4 rounded-xl bg-neutral-800/90 text-neutral-200 text-sm hover:bg-neutral-800!">
                     <img src="/default_avatar.png" className="w-3 h-3 mt-1 shrink-0" alt="user" />{" "}
                     <div className="flex-1 w-full max-w-[calc(100%-2rem)]">
-                        <span className="block w-full wrap-break-word leading-relaxed pt-0.5 whitespace-pre-wrap transcript-box">
+                        <span 
+                            ref={scrollRef}
+                            className="block w-full wrap-break-word leading-relaxed pt-0.5 whitespace-pre-wrap transcript-box"
+                        >
                             {displayText}
                         </span>
                     </div>
