@@ -45,7 +45,7 @@ export const useVoiceController = () => {
                     const voiceMode = useSession.getState().is_voice_mode_enabled;
                     const pausedByAgent = useAudio.getState().isPausedByAgent;
                     if (currentStatus === "active" && voiceMode && !pausedByAgent) {
-                        useAudio.getState().startListening();
+                        useAudio.getState().reconnectListening();
                     }
                 }, 800); // 800ms stabilization window
             }

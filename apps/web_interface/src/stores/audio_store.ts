@@ -10,6 +10,7 @@ type AudioState = {
     // Core state
     liveTranscript: string;
     interimTranscript: string;
+    accumulatedTranscript: string;
     hasSpokenOnce: boolean;
     isListening: boolean;
     isPausedByAgent: boolean;
@@ -33,6 +34,7 @@ type AudioState = {
     // Actions
     setSendMessageHandler: (handler: (text: string) => void) => void;
     startListening: () => void;
+    reconnectListening: () => void;
     pauseListening: () => void;
     resumeListening: () => void;
     stopListening: () => void;
@@ -66,6 +68,7 @@ export const useAudio = create<AudioState>((set, get) => {
         set({
             liveTranscript: "",
             interimTranscript: "",
+            accumulatedTranscript: "",
         });
 
         // Pause listening while agent responds (also handled by subscribe, but safe)
@@ -75,6 +78,7 @@ export const useAudio = create<AudioState>((set, get) => {
     return {
         liveTranscript: "",
         interimTranscript: "",
+        accumulatedTranscript: "",
         hasSpokenOnce: false,
         isListening: false,
         isPausedByAgent: false,
@@ -108,6 +112,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     permissionStatus: "granted",
                     liveTranscript: "",
                     interimTranscript: "",
+                    accumulatedTranscript: "",
                     hasSpokenOnce: false,
                     isCountdownActive: false,
                 });
@@ -148,6 +153,7 @@ export const useAudio = create<AudioState>((set, get) => {
                 hasSpokenOnce: false,
                 liveTranscript: "",
                 interimTranscript: "",
+                accumulatedTranscript: "",
             });
             if (countdownInterval) clearInterval(countdownInterval);
             if (idleTimeoutId) {
@@ -168,6 +174,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     isCountdownActive: false,
                     liveTranscript: "",
                     interimTranscript: "",
+                    accumulatedTranscript: "",
                 });
                 
                 // Agents respond contextually; we treat this as a fresh start for UI timing
@@ -185,6 +192,26 @@ export const useAudio = create<AudioState>((set, get) => {
                 }, INITIAL_IDLE_TIMEOUT_MS);
                 
                 if (speech) speech.resume();
+            }
+        },
+
+        reconnectListening: () => {
+            const speech = get()._speechInstance;
+            if (!speech) return;
+
+            try {
+                // Save current live transcript to accumulated across hardware reconnect
+                set((state) => ({
+                    accumulatedTranscript: state.liveTranscript,
+                }));
+                speech.start();
+                set({
+                    isListening: true,
+                    error: null,
+                    permissionStatus: "granted",
+                });
+            } catch (err: any) {
+                // ignore
             }
         },
 
@@ -211,6 +238,7 @@ export const useAudio = create<AudioState>((set, get) => {
             set({
                 liveTranscript: "",
                 interimTranscript: "",
+                accumulatedTranscript: "",
                 hasSpokenOnce: false,
                 isCountdownActive: false,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
@@ -228,9 +256,12 @@ export const useAudio = create<AudioState>((set, get) => {
                 idleTimeoutId = null;
             }
 
+            const accumulated = get().accumulatedTranscript;
+            const newLive = accumulated ? `${accumulated} ${text}` : text;
+
             set({ 
                 interimTranscript: text, 
-                liveTranscript: text,
+                liveTranscript: newLive.trim(),
                 hasSpokenOnce: true,
                 isIdleTimeoutActive: false,
                 idleMessageShown: false
@@ -242,8 +273,11 @@ export const useAudio = create<AudioState>((set, get) => {
         handleFinal: (text: string) => {
             if (!text.trim()) return;
             
+            const accumulated = get().accumulatedTranscript;
+            const newLive = accumulated ? `${accumulated} ${text}` : text;
+            
             set({
-                liveTranscript: text,
+                liveTranscript: newLive.trim(),
                 interimTranscript: "",
                 hasSpokenOnce: true,
                 idleMessageShown: false,
