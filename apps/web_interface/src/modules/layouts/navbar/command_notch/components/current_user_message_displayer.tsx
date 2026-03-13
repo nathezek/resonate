@@ -41,7 +41,7 @@ const CurrentUserMessageDisplayer = () => {
                 <div className="w-full flex transition-all duration-300 overflow-hidden items-start h-fit px-4 py-2 gap-x-4 rounded-xl bg-neutral-800/90 text-neutral-200 text-sm hover:bg-neutral-800!">
                     <img src="/default_avatar.png" className="w-3 h-3 mt-1 shrink-0" alt="user" />{" "}
                     <div className="flex-1 w-full max-w-[calc(100%-2rem)]">
-                        <span className="block w-full wrap-break-word leading-relaxed pt-0.5 line-clamp-1 group-hover:line-clamp-none group-hover:max-h-64 group-hover:overflow-y-auto transition-all duration-300">
+                        <span className="block w-full wrap-break-word leading-relaxed pt-0.5 whitespace-pre-wrap transcript-box">
                             {displayText}
                         </span>
                     </div>
