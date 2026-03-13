@@ -69,12 +69,20 @@ export const CommandNotch = () => {
                 </div>
 
                 {/*---- Center ----*/}
-                <MicVisualizer
-                    isActive={
-                        (session_status === "active" && is_voice_mode_enabled) &&
-                        !is_session_paused && !is_agent_responding
-                    }
-                />
+                <div className="flex-1 flex justify-center items-center">
+                    {is_session_paused ? (
+                        <div className="use_ibm px-3 py-1 rounded-md bg-neutral-700 text-amber-300/90 text-xs font-medium tracking-wide">
+                            Session is paused
+                        </div>
+                    ) : (
+                        <MicVisualizer
+                            isActive={
+                                (session_status === "active" && is_voice_mode_enabled) &&
+                                !is_session_paused && !is_agent_responding
+                            }
+                        />
+                    )}
+                </div>
 
                 {/*----- Right ------*/}
                 <div className="flex h-full items-center gap-x-4">
@@ -88,7 +96,7 @@ export const CommandNotch = () => {
                 </div>
             </div>
 
-            <CurrentUserMessageDisplayer />
+            {!is_session_paused && <CurrentUserMessageDisplayer />}
         </div>
     );
 };
