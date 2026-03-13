@@ -40,7 +40,14 @@ export const useVoiceController = () => {
             
             // Auto-reconnect if the session is alive and the agent didn't pause us
             if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent) {
-                audioState.startListening();
+                setTimeout(() => {
+                    const currentStatus = useSession.getState().session_status;
+                    const voiceMode = useSession.getState().is_voice_mode_enabled;
+                    const pausedByAgent = useAudio.getState().isPausedByAgent;
+                    if (currentStatus === "active" && voiceMode && !pausedByAgent) {
+                        useAudio.getState().startListening();
+                    }
+                }, 800); // 800ms stabilization window
             }
         },
     });

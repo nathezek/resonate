@@ -150,6 +150,10 @@ export const useAudio = create<AudioState>((set, get) => {
                 interimTranscript: "",
             });
             if (countdownInterval) clearInterval(countdownInterval);
+            if (idleTimeoutId) {
+                clearTimeout(idleTimeoutId);
+                idleTimeoutId = null;
+            }
         },
 
         resumeListening: () => {
@@ -176,11 +180,18 @@ export const useAudio = create<AudioState>((set, get) => {
             set({ isListening: false, isPausedByAgent: false });
             if (countdownInterval) clearInterval(countdownInterval);
             set({ isCountdownActive: false });
+            if (idleTimeoutId) {
+                clearTimeout(idleTimeoutId);
+                idleTimeoutId = null;
+            }
         },
 
         resetAll: () => {
             get().stopListening();
-            if (idleTimeoutId) clearTimeout(idleTimeoutId);
+            if (idleTimeoutId) {
+                clearTimeout(idleTimeoutId);
+                idleTimeoutId = null;
+            }
             if (countdownInterval) clearInterval(countdownInterval);
             set({
                 liveTranscript: "",
@@ -196,7 +207,19 @@ export const useAudio = create<AudioState>((set, get) => {
 
         handleInterim: (text: string) => {
             if (!text.trim()) return;
-            set({ interimTranscript: text, liveTranscript: text });
+            
+            if (idleTimeoutId) {
+                clearTimeout(idleTimeoutId);
+                idleTimeoutId = null;
+            }
+
+            set({ 
+                interimTranscript: text, 
+                liveTranscript: text,
+                hasSpokenOnce: true,
+                isIdleTimeoutActive: false,
+                idleMessageShown: false
+            });
             // Reset countdown if active
             get().cancelCountdown();
         },
