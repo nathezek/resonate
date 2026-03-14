@@ -8,7 +8,7 @@ export async function generateAudioFromText(text: string): Promise<Buffer> {
 
     try {
         const response = await fetch(
-            `https://api.deepgram.com/v1/speak?model=aura-2-asteria-en`,
+            `https://api.deepgram.com/v1/speak?model=aura-2-luna-en`,
             {
                 method: "POST",
                 headers: {
