@@ -47,7 +47,8 @@ type AudioState = {
 
     // TTS playback
     isPlayingAgentAudio: boolean;
-    playAgentAudio: (buffer: ArrayBuffer) => void;
+    audioQueue: ArrayBuffer[];
+    enqueueAgentAudio: (buffer: ArrayBuffer) => void;
     stopAgentAudio: () => void;
 };
 
@@ -103,6 +104,7 @@ export const useAudio = create<AudioState>((set, get) => {
         idleMessageShown: false,
         
         isPlayingAgentAudio: false,
+        audioQueue: [],
 
         setSendMessageHandler: (handler) => set({ _sendMessageHandler: handler }),
 
@@ -347,39 +349,67 @@ export const useAudio = create<AudioState>((set, get) => {
                 currentAudioSource.disconnect();
                 currentAudioSource = null;
             }
-            set({ isPlayingAgentAudio: false });
+            set({ isPlayingAgentAudio: false, audioQueue: [] });
         },
 
-        playAgentAudio: async (buffer: ArrayBuffer) => {
-            try {
-                // Initialize context on first interaction if needed
-                if (!globalAudioContext) {
-                    globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                }
-                if (globalAudioContext.state === 'suspended') {
-                    await globalAudioContext.resume();
-                }
+        enqueueAgentAudio: async (buffer: ArrayBuffer) => {
+            // Add buffer to queue
+            set((state) => ({ audioQueue: [...state.audioQueue, buffer] }));
+            
+            // Kickstart the queue processor if it isn't already playing
+            if (!get().isPlayingAgentAudio) {
+                const processQueue = async () => {
+                    const queue = get().audioQueue;
+                    if (queue.length === 0) {
+                        set({ isPlayingAgentAudio: false });
+                        return; // Queue is empty, done.
+                    }
 
-                // Stop any currently playing audio
-                get().stopAgentAudio();
+                    // Protect against race conditions
+                    if (get().isPlayingAgentAudio && currentAudioSource) {
+                         return; // Already actively processing a track
+                    }
 
-                set({ isPlayingAgentAudio: true });
+                    set({ isPlayingAgentAudio: true });
 
-                const audioBuffer = await globalAudioContext.decodeAudioData(buffer);
-                currentAudioSource = globalAudioContext.createBufferSource();
-                currentAudioSource.buffer = audioBuffer;
-                currentAudioSource.connect(globalAudioContext.destination);
-                
-                currentAudioSource.onended = () => {
-                    set({ isPlayingAgentAudio: false });
-                    currentAudioSource = null;
+                    try {
+                        // Initialize context on first interaction if needed
+                        if (!globalAudioContext) {
+                            globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                        }
+                        if (globalAudioContext.state === 'suspended') {
+                            await globalAudioContext.resume();
+                        }
+
+                        // Play the first item in the queue
+                        const currentBuffer = queue[0];
+                        const audioBuffer = await globalAudioContext.decodeAudioData(currentBuffer);
+                        currentAudioSource = globalAudioContext.createBufferSource();
+                        currentAudioSource.buffer = audioBuffer;
+                        currentAudioSource.connect(globalAudioContext.destination);
+                        
+                        currentAudioSource.onended = () => {
+                            // Track finished. Remove from queue and process next.
+                            currentAudioSource = null;
+                            set((state) => ({ audioQueue: state.audioQueue.slice(1), isPlayingAgentAudio: false }));
+                            
+                            // Re-invoke to process the next item (will instantly exit if empty)
+                            processQueue();
+                        };
+
+                        currentAudioSource.start(0);
+
+                    } catch (err) {
+                        console.error("Failed to play queued agent audio", err);
+                        // Error on this chunk. Pop it and try the next one.
+                        currentAudioSource = null;
+                        set((state) => ({ audioQueue: state.audioQueue.slice(1), isPlayingAgentAudio: false }));
+                        processQueue();
+                    }
                 };
 
-                currentAudioSource.start(0);
-
-            } catch (err) {
-                console.error("Failed to play agent audio", err);
-                set({ isPlayingAgentAudio: false });
+                // Triggers the loop
+                processQueue();
             }
         },
         

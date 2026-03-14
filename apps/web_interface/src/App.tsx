@@ -45,7 +45,7 @@ function App() {
             socket.onmessage = async (event) => {
                 // Determine if it's binary TTS data natively via ArrayBuffer check
                 if (event.data instanceof ArrayBuffer) {
-                    useAudio.getState().playAgentAudio(event.data);
+                    useAudio.getState().enqueueAgentAudio(event.data);
                     return;
                 }
 

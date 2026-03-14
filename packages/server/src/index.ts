@@ -30,11 +30,47 @@ app.get("/ws", { websocket: true }, (socket, req) => {
         console.log("Message received:", userInput);
 
         try {
+            let textBuffer = "";
+            let ttsPromiseChain = Promise.resolve();
+
+            const processSentence = (sentence: string) => {
+                if (!sentence.trim()) return;
+                ttsPromiseChain = ttsPromiseChain.then(async () => {
+                    try {
+                        const audioBuffer = await generateAudioFromText(sentence);
+                        socket.send(audioBuffer);
+                        console.log("🔊 Sequence audio payload sent to client.");
+                    } catch (ttsErr: any) {
+                        console.error("❌ TTS generation sequence failed:", ttsErr);
+                        socket.send(
+                            JSON.stringify({
+                                type: "error",
+                                data: "Failed to generate audio playback",
+                            })
+                        );
+                    }
+                });
+            };
+
             // 1. Call run_tutor with the streaming callback
             const fullResult = await run_tutor(userInput, (chunk) => {
                 if (chunk.startsWith("{") && chunk.includes('"type"')) {
                     socket.send(chunk);
                 } else {
+                    textBuffer += chunk;
+                    
+                    // Regex looking for sentence terminators (. ! ? \n) followed by a space, or newlines
+                    const sentenceEndRegex = /([.!?]+[\s]+|\n+)/;
+                    let match;
+
+                    while ((match = textBuffer.match(sentenceEndRegex))) {
+                        const splitIndex = match.index! + match[0].length;
+                        const sentence = textBuffer.slice(0, splitIndex).trim();
+                        textBuffer = textBuffer.slice(splitIndex);
+                        
+                        processSentence(sentence);
+                    }
+
                     socket.send(
                         JSON.stringify({
                             type: "chunk",
@@ -44,24 +80,17 @@ app.get("/ws", { websocket: true }, (socket, req) => {
                 }
             });
 
-            console.log("Agent finished responding, generating audio...");
-
-            // 2. Generate and send TTS audio
-            try {
-                if (fullResult) {
-                    const audioBuffer = await generateAudioFromText(fullResult);
-                    socket.send(audioBuffer);
-                    console.log("🔊 Audio payload sent to client.");
-                }
-            } catch (ttsErr: any) {
-                 console.error("❌ TTS generation failed:", ttsErr);
-                 socket.send(
-                    JSON.stringify({
-                       type: "error",
-                       data: "Failed to generate audio playback",
-                    })
-                 );
+            // flush any remaining buffered text
+            if (textBuffer.trim()) {
+                processSentence(textBuffer.trim());
             }
+
+            console.log("Agent finished streaming text. Waiting for final TTS generation to complete...");
+            
+            // Wait for all queued audio requests to finish generating before fully closing the turn
+            await ttsPromiseChain;
+
+            console.log("✅ Turn fully complete. Text and sequence audio delivered.");
 
             // 3. Send the final response message
             socket.send(
