@@ -31,6 +31,7 @@ function App() {
 
         const connect = () => {
             const socket = new WebSocket("ws://localhost:3001/ws");
+            socket.binaryType = "arraybuffer";
 
             socket.onopen = () => {
                 // If StrictMode already ran cleanup, close this stale socket
@@ -41,8 +42,20 @@ function App() {
                 console.log("✅ WS Connected");
             };
 
-            socket.onmessage = (event) => {
-                const incoming: AGENT_CONTENT = JSON.parse(event.data);
+            socket.onmessage = async (event) => {
+                // Determine if it's binary TTS data natively via ArrayBuffer check
+                if (event.data instanceof ArrayBuffer) {
+                    useAudio.getState().playAgentAudio(event.data);
+                    return;
+                }
+
+                let incoming: AGENT_CONTENT;
+                try {
+                    incoming = JSON.parse(event.data);
+                } catch (e) {
+                    return;
+                }
+
                 // TODO: Remove the log, this was went to debugging purposes only
                 console.log("📩 Incoming WS message:", incoming);
 

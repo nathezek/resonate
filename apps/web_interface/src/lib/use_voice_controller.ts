@@ -5,22 +5,32 @@ import { useAudio } from "../stores/audio_store";
 import { useSession } from "../stores/session_store";
 
 export const useVoiceController = () => {
-    // 1. Subscribe to chat store to pause/resume listening when agent responds
+    // 1. Subscribe to both chat response state and audio playback state
     useEffect(() => {
-        const unsubscribe = useChat.subscribe((state, prevState) => {
-            const isResponding = state.is_agent_responding;
-            const previousIsResponding = prevState?.is_agent_responding;
+        const handleStateChange = () => {
+            const isRespondingText = useChat.getState().is_agent_responding;
+            const isPlayingAudio = useAudio.getState().isPlayingAgentAudio;
+            const currentListening = useAudio.getState().isListening;
+            const isPausedByAgent = useAudio.getState().isPausedByAgent;
 
-            if (isResponding === previousIsResponding) return;
-
-            if (isResponding) {
-                useAudio.getState().pauseListening();
+            if (isRespondingText || isPlayingAudio) {
+                if (currentListening && !isPausedByAgent) {
+                    useAudio.getState().pauseListening();
+                }
             } else {
-                useAudio.getState().resumeListening();
+                if (isPausedByAgent) {
+                    useAudio.getState().resumeListening();
+                }
             }
-        });
+        };
 
-        return unsubscribe;
+        const unsubChat = useChat.subscribe(handleStateChange);
+        const unsubAudio = useAudio.subscribe(handleStateChange);
+
+        return () => {
+            unsubChat();
+            unsubAudio();
+        };
     }, []);
 
     // 2. Wrap speech recognition inside this React component/hook context

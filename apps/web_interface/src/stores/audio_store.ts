@@ -44,7 +44,16 @@ type AudioState = {
     startCountdown: () => void;
     cancelCountdown: () => void;
     tickCountdown: () => void;
+
+    // TTS playback
+    isPlayingAgentAudio: boolean;
+    playAgentAudio: (buffer: ArrayBuffer) => void;
+    stopAgentAudio: () => void;
 };
+
+// Global audio context for playback
+let globalAudioContext: AudioContext | null = null;
+let currentAudioSource: AudioBufferSourceNode | null = null;
 
 export const useAudio = create<AudioState>((set, get) => {
     let countdownInterval: number | null = null;
@@ -92,6 +101,8 @@ export const useAudio = create<AudioState>((set, get) => {
 
         isIdleTimeoutActive: false,
         idleMessageShown: false,
+        
+        isPlayingAgentAudio: false,
 
         setSendMessageHandler: (handler) => set({ _sendMessageHandler: handler }),
 
@@ -328,6 +339,50 @@ export const useAudio = create<AudioState>((set, get) => {
             });
         },
 
+        stopAgentAudio: () => {
+            if (currentAudioSource) {
+                try {
+                    currentAudioSource.stop();
+                } catch (e) {}
+                currentAudioSource.disconnect();
+                currentAudioSource = null;
+            }
+            set({ isPlayingAgentAudio: false });
+        },
+
+        playAgentAudio: async (buffer: ArrayBuffer) => {
+            try {
+                // Initialize context on first interaction if needed
+                if (!globalAudioContext) {
+                    globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                }
+                if (globalAudioContext.state === 'suspended') {
+                    await globalAudioContext.resume();
+                }
+
+                // Stop any currently playing audio
+                get().stopAgentAudio();
+
+                set({ isPlayingAgentAudio: true });
+
+                const audioBuffer = await globalAudioContext.decodeAudioData(buffer);
+                currentAudioSource = globalAudioContext.createBufferSource();
+                currentAudioSource.buffer = audioBuffer;
+                currentAudioSource.connect(globalAudioContext.destination);
+                
+                currentAudioSource.onended = () => {
+                    set({ isPlayingAgentAudio: false });
+                    currentAudioSource = null;
+                };
+
+                currentAudioSource.start(0);
+
+            } catch (err) {
+                console.error("Failed to play agent audio", err);
+                set({ isPlayingAgentAudio: false });
+            }
+        },
+        
         tickCountdown: () => {},
     };
 });
