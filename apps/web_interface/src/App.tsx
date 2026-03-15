@@ -53,6 +53,7 @@ function App() {
                 try {
                     incoming = JSON.parse(event.data);
                 } catch (e) {
+                    console.log(e);
                     return;
                 }
 
