@@ -73,7 +73,14 @@ function App() {
             };
 
             socket.onerror = (err) => console.error("❌ WS Error:", err);
-            socket.onclose = () => console.log("🔌 WS Disconnected");
+            socket.onclose = () => {
+                console.log("🔌 WS Disconnected");
+                // If the agent was mid-response when the connection dropped, clear the stuck state
+                const { is_agent_responding } = useChat.getState();
+                if (is_agent_responding) {
+                    useChat.getState().finish_agent_response();
+                }
+            };
 
             ws.current = socket;
         };
