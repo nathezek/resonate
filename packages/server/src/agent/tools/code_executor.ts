@@ -4,10 +4,10 @@ import { spawn } from "node:child_process";
 
 export const code_executor = new FunctionTool({
     name: "run_python",
-    description: "Executes Python code and returns the output. Use this when you need to run code or demonstrate a programming concept with working examples.",
+    description: "Runs a Python code snippet and returns stdout. Use for demos, calculations, or verifying concepts.",
 
     parameters: z.object({
-        code: z.string().describe("The Python code to execute."),
+        code: z.string().describe("Python code to execute. Must be a valid JSON-escaped string — use \\n for newlines, \\\" for quotes."),
     }),
 
     execute: async ({ code }) => {
