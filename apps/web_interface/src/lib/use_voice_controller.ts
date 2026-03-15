@@ -46,15 +46,16 @@ export const useVoiceController = () => {
         onError: (err) => useAudio.setState({ error: err }),
         onEnd: () => {
             const audioState = useAudio.getState();
-            const { session_status, is_voice_mode_enabled } = useSession.getState(); 
+            const { session_status, is_voice_mode_enabled, is_session_paused } = useSession.getState(); 
             
-            // Auto-reconnect if the session is alive and the agent didn't pause us
-            if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent) {
+            // Auto-reconnect if the session is alive, not paused, and the agent didn't pause us
+            if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent && !is_session_paused) {
                 setTimeout(() => {
                     const currentStatus = useSession.getState().session_status;
                     const voiceMode = useSession.getState().is_voice_mode_enabled;
                     const pausedByAgent = useAudio.getState().isPausedByAgent;
-                    if (currentStatus === "active" && voiceMode && !pausedByAgent) {
+                    const sessionPaused = useSession.getState().is_session_paused;
+                    if (currentStatus === "active" && voiceMode && !pausedByAgent && !sessionPaused) {
                         useAudio.getState().reconnectListening();
                     }
                 }, 800); // 800ms stabilization window
