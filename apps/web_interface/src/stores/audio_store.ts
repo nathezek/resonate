@@ -391,10 +391,17 @@ export const useAudio = create<AudioState>((set, get) => {
                         currentAudioSource.onended = () => {
                             // Track finished. Remove from queue and process next.
                             currentAudioSource = null;
-                            set((state) => ({ audioQueue: state.audioQueue.slice(1), isPlayingAgentAudio: false }));
                             
-                            // Re-invoke to process the next item (will instantly exit if empty)
-                            processQueue();
+                            const nextQueue = get().audioQueue.slice(1);
+                            
+                            if (nextQueue.length === 0) {
+                                // Done playing fully
+                                set({ audioQueue: nextQueue, isPlayingAgentAudio: false });
+                            } else {
+                                // Still items left, do not drop isPlayingAgentAudio flag to prevent mic unpausing
+                                set({ audioQueue: nextQueue });
+                                processQueue();
+                            }
                         };
 
                         currentAudioSource.start(0);
@@ -403,8 +410,14 @@ export const useAudio = create<AudioState>((set, get) => {
                         console.error("Failed to play queued agent audio", err);
                         // Error on this chunk. Pop it and try the next one.
                         currentAudioSource = null;
-                        set((state) => ({ audioQueue: state.audioQueue.slice(1), isPlayingAgentAudio: false }));
-                        processQueue();
+                        
+                        const nextQueue = get().audioQueue.slice(1);
+                        if (nextQueue.length === 0) {
+                            set({ audioQueue: nextQueue, isPlayingAgentAudio: false });
+                        } else {
+                            set({ audioQueue: nextQueue });
+                            processQueue();
+                        }
                     }
                 };
 
