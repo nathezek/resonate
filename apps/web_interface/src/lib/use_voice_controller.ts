@@ -5,22 +5,32 @@ import { useAudio } from "../stores/audio_store";
 import { useSession } from "../stores/session_store";
 
 export const useVoiceController = () => {
-    // 1. Subscribe to chat store to pause/resume listening when agent responds
+    // 1. Subscribe to both chat response state and audio playback state
     useEffect(() => {
-        const unsubscribe = useChat.subscribe((state, prevState) => {
-            const isResponding = state.is_agent_responding;
-            const previousIsResponding = prevState?.is_agent_responding;
+        const handleStateChange = () => {
+            const isRespondingText = useChat.getState().is_agent_responding;
+            const isPlayingAudio = useAudio.getState().isPlayingAgentAudio;
+            const currentListening = useAudio.getState().isListening;
+            const isPausedByAgent = useAudio.getState().isPausedByAgent;
 
-            if (isResponding === previousIsResponding) return;
-
-            if (isResponding) {
-                useAudio.getState().pauseListening();
+            if (isRespondingText || isPlayingAudio) {
+                if (currentListening && !isPausedByAgent) {
+                    useAudio.getState().pauseListening();
+                }
             } else {
-                useAudio.getState().resumeListening();
+                if (isPausedByAgent) {
+                    useAudio.getState().resumeListening();
+                }
             }
-        });
+        };
 
-        return unsubscribe;
+        const unsubChat = useChat.subscribe(handleStateChange);
+        const unsubAudio = useAudio.subscribe(handleStateChange);
+
+        return () => {
+            unsubChat();
+            unsubAudio();
+        };
     }, []);
 
     // 2. Wrap speech recognition inside this React component/hook context
@@ -36,15 +46,16 @@ export const useVoiceController = () => {
         onError: (err) => useAudio.setState({ error: err }),
         onEnd: () => {
             const audioState = useAudio.getState();
-            const { session_status, is_voice_mode_enabled } = useSession.getState(); 
+            const { session_status, is_voice_mode_enabled, is_session_paused } = useSession.getState(); 
             
-            // Auto-reconnect if the session is alive and the agent didn't pause us
-            if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent) {
+            // Auto-reconnect if the session is alive, not paused, and the agent didn't pause us
+            if (session_status === "active" && is_voice_mode_enabled && !audioState.isPausedByAgent && !is_session_paused) {
                 setTimeout(() => {
                     const currentStatus = useSession.getState().session_status;
                     const voiceMode = useSession.getState().is_voice_mode_enabled;
                     const pausedByAgent = useAudio.getState().isPausedByAgent;
-                    if (currentStatus === "active" && voiceMode && !pausedByAgent) {
+                    const sessionPaused = useSession.getState().is_session_paused;
+                    if (currentStatus === "active" && voiceMode && !pausedByAgent && !sessionPaused) {
                         useAudio.getState().reconnectListening();
                     }
                 }, 800); // 800ms stabilization window

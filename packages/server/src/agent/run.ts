@@ -28,6 +28,7 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
   const user_message = format_user_message(user_input);
 
   let final_response = "";
+  let sentRecovery = false;
 
   try {
     // 3. Run the agent with explicit SSE Streaming Configuration
@@ -36,7 +37,7 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
       sessionId: adkSessionId,
       newMessage: user_message,
       runConfig: {
-        streamingMode: StreamingMode.SSE, // TODO: I will change this to BIDI when switching to voice mode
+        streamingMode: StreamingMode.SSE,
         responseModalities: [Modality.TEXT],
       }
     });
@@ -44,6 +45,22 @@ export const run_tutor = async (user_input: string, onChunk: (chunk: string) => 
     for await (const event of stream) {
       // Skip final events for text — they duplicate already-streamed partial content
       const isFinal = isFinalResponse(event);
+
+      // Handle ADK errors (e.g. MALFORMED_FUNCTION_CALL) gracefully
+      if ((event as any).errorCode) {
+        console.warn(`⚠️ ADK Error: ${(event as any).errorCode}`, JSON.stringify({
+          finishReason: (event as any).finishReason,
+          invocationId: (event as any).invocationId,
+        }));
+        // Only send ONE recovery message per turn
+        if (!final_response.trim() && !sentRecovery) {
+          const recoveryMsg = "Hmm, I tripped over my own thoughts there. Let me try again — what were we working on?";
+          onChunk(recoveryMsg);
+          final_response += recoveryMsg;
+          sentRecovery = true;
+        }
+        continue;
+      }
 
       if (event.content?.parts) {
         for (const part of event.content.parts) {

@@ -83,11 +83,15 @@ export const useSession = create<SESSION_STATE_TYPES>((set, get) => ({
             const current_mic_muted = !is_voice_mode_enabled;
             set({ was_muted_before_pause: current_mic_muted, is_session_paused: true });
             audio.stopListening();
+            audio.stopAgentAudio(); // Also kill any TTS playing
             timer.stop_timer();
         } else {
             // --- ACTION: RESUMING ---
             const keyboard = useKeyboard.getState();
             const was_muted = get().was_muted_before_pause;
+
+            // Reset any orphaned agent-pause flag before restarting mic
+            useAudio.setState({ isPausedByAgent: false });
 
             if (!was_muted && !keyboard.is_keyboard_enabled) {
                 audio.startListening();

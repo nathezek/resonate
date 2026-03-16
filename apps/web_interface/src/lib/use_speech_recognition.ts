@@ -32,6 +32,12 @@ export function useSpeechRecognition({
             : null,
     );
 
+    // Use a ref to track listening state so callbacks never have stale closures
+    const isListeningRef = useRef(false);
+    useEffect(() => {
+        isListeningRef.current = isListening;
+    }, [isListening]);
+
     // 2. Initialize with 0 to remain idempotent during render
     const lastSoundTimeRef = useRef<number>(0);
 
@@ -49,25 +55,31 @@ export function useSpeechRecognition({
         onEndRef.current = onEnd;
     });
 
-    // Use useCallback for start/stop so they are stable references
+    // Use useCallback for start/stop — no dependency on isListening to avoid stale closures
     const start = useCallback(() => {
-        if (!recognitionRef.current || isListening) return;
+        if (!recognitionRef.current) return;
+        if (isListeningRef.current) return; // Already listening, skip
         try {
             recognitionRef.current.start();
             setIsListening(true);
+            isListeningRef.current = true;
             setError(null);
             lastSoundTimeRef.current = Date.now();
         } catch (err) {
             setError((err as Error).message || "Failed to start recognition");
         }
-    }, [isListening]);
+    }, []);
 
     const stop = useCallback(() => {
-        if (recognitionRef.current && isListening) {
+        if (!recognitionRef.current) return;
+        try {
             recognitionRef.current.stop();
-            setIsListening(false);
+        } catch (e) {
+            // May throw if not started — safe to ignore
         }
-    }, [isListening]);
+        setIsListening(false);
+        isListeningRef.current = false;
+    }, []);
 
     useEffect(() => {
         if (!SpeechRecognitionConstructor) return;
@@ -109,10 +121,12 @@ export function useSpeechRecognition({
             setError(event.error);
             onErrorRef.current?.(event.error);
             setIsListening(false);
+            isListeningRef.current = false;
         };
 
         recognition.onend = () => {
             setIsListening(false);
+            isListeningRef.current = false;
             onEndRef.current?.();
         };
 

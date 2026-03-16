@@ -44,7 +44,17 @@ type AudioState = {
     startCountdown: () => void;
     cancelCountdown: () => void;
     tickCountdown: () => void;
+
+    // TTS playback
+    isPlayingAgentAudio: boolean;
+    audioQueue: ArrayBuffer[];
+    enqueueAgentAudio: (buffer: ArrayBuffer) => void;
+    stopAgentAudio: () => void;
 };
+
+// Global audio context for playback
+let globalAudioContext: AudioContext | null = null;
+let currentAudioSource: AudioBufferSourceNode | null = null;
 
 export const useAudio = create<AudioState>((set, get) => {
     let countdownInterval: number | null = null;
@@ -57,7 +67,7 @@ export const useAudio = create<AudioState>((set, get) => {
         const { add_user_message, start_agent_response } = useChat.getState();
         add_user_message(text);
         start_agent_response();
-        
+
         // Actually send it to websocket
         const handler = get()._sendMessageHandler;
         if (handler) {
@@ -93,7 +103,11 @@ export const useAudio = create<AudioState>((set, get) => {
         isIdleTimeoutActive: false,
         idleMessageShown: false,
 
-        setSendMessageHandler: (handler) => set({ _sendMessageHandler: handler }),
+        isPlayingAgentAudio: false,
+        audioQueue: [],
+
+        setSendMessageHandler: (handler) =>
+            set({ _sendMessageHandler: handler }),
 
         startListening: () => {
             const speech = get()._speechInstance;
@@ -147,7 +161,7 @@ export const useAudio = create<AudioState>((set, get) => {
             const speech = get()._speechInstance;
             if (speech) speech.pause();
 
-            set({ 
+            set({
                 isPausedByAgent: true,
                 isCountdownActive: false,
                 hasSpokenOnce: false,
@@ -168,7 +182,7 @@ export const useAudio = create<AudioState>((set, get) => {
                 get().isPausedByAgent &&
                 useSession.getState().session_status === "active"
             ) {
-                set({ 
+                set({
                     isPausedByAgent: false,
                     hasSpokenOnce: false,
                     isCountdownActive: false,
@@ -176,7 +190,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     interimTranscript: "",
                     accumulatedTranscript: "",
                 });
-                
+
                 // Agents respond contextually; we treat this as a fresh start for UI timing
                 set({ isIdleTimeoutActive: true, idleMessageShown: false });
                 if (idleTimeoutId) clearTimeout(idleTimeoutId);
@@ -190,7 +204,7 @@ export const useAudio = create<AudioState>((set, get) => {
                     if (speechInstance) speechInstance.stop();
                     useSession.getState().set_voice_mode(false);
                 }, INITIAL_IDLE_TIMEOUT_MS);
-                
+
                 if (speech) speech.resume();
             }
         },
@@ -250,7 +264,7 @@ export const useAudio = create<AudioState>((set, get) => {
 
         handleInterim: (text: string) => {
             if (!text.trim()) return;
-            
+
             if (idleTimeoutId) {
                 clearTimeout(idleTimeoutId);
                 idleTimeoutId = null;
@@ -259,12 +273,12 @@ export const useAudio = create<AudioState>((set, get) => {
             const accumulated = get().accumulatedTranscript;
             const newLive = accumulated ? `${accumulated} ${text}` : text;
 
-            set({ 
-                interimTranscript: text, 
+            set({
+                interimTranscript: text,
                 liveTranscript: newLive.trim(),
                 hasSpokenOnce: true,
                 isIdleTimeoutActive: false,
-                idleMessageShown: false
+                idleMessageShown: false,
             });
             // Reset countdown if active
             get().cancelCountdown();
@@ -272,10 +286,10 @@ export const useAudio = create<AudioState>((set, get) => {
 
         handleFinal: (text: string) => {
             if (!text.trim()) return;
-            
+
             const accumulated = get().accumulatedTranscript;
             const newLive = accumulated ? `${accumulated} ${text}` : text;
-            
+
             set({
                 liveTranscript: newLive.trim(),
                 interimTranscript: "",
@@ -326,6 +340,107 @@ export const useAudio = create<AudioState>((set, get) => {
                 isCountdownActive: false,
                 countdownRemainingMs: SILENCE_COUNTDOWN_MS,
             });
+        },
+
+        stopAgentAudio: () => {
+            if (currentAudioSource) {
+                try {
+                    currentAudioSource.stop();
+                } catch (e) {
+                    console.log(e);
+                }
+                currentAudioSource.disconnect();
+                currentAudioSource = null;
+            }
+            set({ isPlayingAgentAudio: false, audioQueue: [] });
+        },
+
+        enqueueAgentAudio: async (buffer: ArrayBuffer) => {
+            // Add buffer to queue
+            set((state) => ({ audioQueue: [...state.audioQueue, buffer] }));
+
+            // Kickstart the queue processor if it isn't already playing
+            if (!get().isPlayingAgentAudio) {
+                const processQueue = async () => {
+                    const queue = get().audioQueue;
+                    if (queue.length === 0) {
+                        set({ isPlayingAgentAudio: false });
+                        return; // Queue is empty, done.
+                    }
+
+                    // Protect against race conditions
+                    if (get().isPlayingAgentAudio && currentAudioSource) {
+                        return; // Already actively processing a track
+                    }
+
+                    set({ isPlayingAgentAudio: true });
+
+                    try {
+                        // Initialize context on first interaction if needed
+                        if (!globalAudioContext) {
+                            globalAudioContext = new (
+                                window.AudioContext ||
+                                (window as any).webkitAudioContext
+                            )();
+                        }
+                        if (globalAudioContext.state === "suspended") {
+                            await globalAudioContext.resume();
+                        }
+
+                        // Play the first item in the queue
+                        const currentBuffer = queue[0];
+                        const audioBuffer =
+                            await globalAudioContext.decodeAudioData(
+                                currentBuffer,
+                            );
+                        currentAudioSource =
+                            globalAudioContext.createBufferSource();
+                        currentAudioSource.buffer = audioBuffer;
+                        currentAudioSource.connect(
+                            globalAudioContext.destination,
+                        );
+
+                        currentAudioSource.onended = () => {
+                            // Track finished. Remove from queue and process next.
+                            currentAudioSource = null;
+
+                            const nextQueue = get().audioQueue.slice(1);
+
+                            if (nextQueue.length === 0) {
+                                // Done playing fully
+                                set({
+                                    audioQueue: nextQueue,
+                                    isPlayingAgentAudio: false,
+                                });
+                            } else {
+                                // Still items left, do not drop isPlayingAgentAudio flag to prevent mic unpausing
+                                set({ audioQueue: nextQueue });
+                                processQueue();
+                            }
+                        };
+
+                        currentAudioSource.start(0);
+                    } catch (err) {
+                        console.error("Failed to play queued agent audio", err);
+                        // Error on this chunk. Pop it and try the next one.
+                        currentAudioSource = null;
+
+                        const nextQueue = get().audioQueue.slice(1);
+                        if (nextQueue.length === 0) {
+                            set({
+                                audioQueue: nextQueue,
+                                isPlayingAgentAudio: false,
+                            });
+                        } else {
+                            set({ audioQueue: nextQueue });
+                            processQueue();
+                        }
+                    }
+                };
+
+                // Triggers the loop
+                processQueue();
+            }
         },
 
         tickCountdown: () => {},
